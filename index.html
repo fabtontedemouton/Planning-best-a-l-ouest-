@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#101914"><link rel="icon" type="image/png" href="icon-512.png"><link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="style.css"><title>FAB PLANNING</title>
+<link rel="stylesheet" href="style.css"><title>PLANNING — Les Best à l’Ouest</title>
 </head>
 <body>
 <div class="grain"></div>
 <header class="topbar">
-  <div class="brand"><img class="brand-mark-img" src="icon-512.png" alt="Logo Planning Les Best à l’Ouest"><div><div class="brand-name">FAB <span>PLANNING</span></div><div class="brand-sub">LA TONTE, BIEN ORGANISÉE</div></div></div>
+  <div class="brand"><img class="brand-mark-img" src="icon-512.png" alt="Logo Planning Les Best à l’Ouest"><div><div class="brand-name">PLANNING</div><div class="brand-sub">LES BEST À L’OUEST</div></div></div>
   <button id="logout" class="icon-btn" hidden aria-label="Déconnexion">↗</button>
 </header>
 <main>
@@ -20,14 +20,14 @@
   <div class="login-foot">🐏 Pensé par des tondeurs, pour des tondeurs.</div>
 </section>
 <section id="app" hidden>
-  <div class="welcome"><div><div class="eyebrow">TABLEAU DE BORD</div><h1>Salut <span id="myname">l'équipe</span> 👋</h1><p>Prêt à remplir la semaine ?</p></div><div class="wool-stamp">FAB<br><b>✂</b></div></div>
+  <div class="welcome"><div><div class="eyebrow">TABLEAU DE BORD</div><h1>Salut <span id="myname">l'équipe</span> 👋</h1><p>Prêt à remplir la semaine ?</p></div><div class="wool-stamp">LES BEST<br><b>✂</b><br>À L’OUEST</div></div>
   <div class="quick-stats">
     <div class="stat"><span class="stat-icon green">✓</span><div><b id="statfree">—</b><small>dispos aujourd'hui</small></div></div>
     <div class="stat"><span class="stat-icon blue">↗</span><div><b id="statpending">—</b><small>demandes à voir</small></div></div>
   </div>
   <section class="section">
     <div class="section-head"><div><div class="eyebrow">VUE D'ENSEMBLE</div><h2>Le planning</h2></div>
-      <div class="range-tools"><div class="range-switch"><button id="range30" type="button">1 MOIS</button><button id="range45" type="button" class="selected">6 SEM.</button></div><div class="range-switch"><button id="range30" class="range-btn">30 j</button><button id="range45" class="range-btn active">45 j</button></div><div class="week-nav"><button id="prev" aria-label="Période précédente">‹</button><button id="next" aria-label="Période suivante">›</button></div></div>
+      <div class="range-tools"><div class="range-switch"><button id="range30" class="range-btn">1 MOIS</button><button id="range45" class="range-btn active">6 SEM.</button></div><div class="week-nav"><button id="prev" aria-label="Période précédente">‹</button><button id="next" aria-label="Période suivante">›</button></div></div>
     </div>
     <div id="weeklabel" class="week-label"></div><div id="calendar" class="calendar"></div><div id="daynotes" class="daynotes"></div>
     <div class="legend"><span><i class="dot free"></i>Libre</span><span><i class="dot limited"></i>Limité</span><span><i class="dot busy"></i>Chantier</span><span><i class="dot unknown"></i>Non renseigné</span></div>
@@ -46,8 +46,8 @@
   <section id="availability" class="subpanel" hidden><div class="subhead"><button class="back" data-back>← Retour</button><h2>Mes disponibilités</h2></div>
     <label>Journée<input id="adate" type="date"></label>
     <label>Mon statut<select id="astatus"><option value="available">🟢 Disponible</option><option value="limited">🟠 Disponible avec horaires limités</option><option value="unavailable">🔴 Indisponible</option></select></label>
-    <div class="notice">Règle personnelle : indique ici tes limites habituelles. Elles ne s’appliquent qu’à ton agenda.</div>
-    <div class="form-row"><label>Pas de chantier avant<input id="earliest" type="time" value="07:00"></label><label>Départ au plus tard<input id="latest" type="time" value="19:00"></label></div>
+    <div class="notice">Tes horaires personnels : chantier à partir de 08:00 et départ au plus tard à 18:00. Ils ne concernent que ton agenda.</div>
+    <div class="form-row"><label>Pas de chantier avant<input id="earliest" type="time" value="08:00"></label><label>Départ au plus tard<input id="latest" type="time" value="18:00"></label></div>
     <label>Note (facultatif)<input id="anote" placeholder="Ex. rendez-vous le matin"></label><button id="saveA" class="primary full">ENREGISTRER</button>
   </section>
   <section id="job" class="subpanel" hidden><div class="subhead"><button class="back" data-back>← Retour</button><h2>Nouveau chantier</h2></div>

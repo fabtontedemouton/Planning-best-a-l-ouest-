@@ -1,34 +1,25 @@
-# PLANNING — Les Best à l'Ouest (V3)
+# PLANNING — Les Best à l'Ouest
 
-## Inclus dans cette archive
-- Interface mobile et logo intégré (icône 512 × 512).
-- Planning à 30 ou 45 jours.
-- Disponibilités par tondeur.
-- Commentaire partagé par journée.
-- Commentaire/consignes sur chaque chantier.
-- Création de chantier avec plusieurs participants, sans limite fixée par l'interface.
-- Invitations acceptées/refusées.
-- Synchronisation en direct via Supabase Realtime (abonnement aux changements des tables).
+## APK Android
+Le dépôt contient l'application et un workflow GitHub Actions qui compile un APK Android debug à chaque push sur `main` ou manuellement.
 
-## Installation / mise à jour
-1. Garder le même dépôt GitHub et remplacer le contenu du dossier `app` avec celui de cette archive.
-2. Garder le projet Supabase existant.
-3. Dans Supabase SQL Editor, exécuter le fichier `supabase/schema.sql` COMPLET uniquement si c'est une première installation.
-   - Si la base V2 existe déjà, exécuter seulement le bloc ajouté à la fin du fichier à partir de `-- Commentaire partagé par journée`.
-   - Ne pas réexécuter aveuglément le schéma complet sur une base déjà utilisée.
-4. Configurer `app/config.js` avec l'URL Supabase et la clé anon/public.
-5. Vérifier dans Supabase Authentication que l'URL GitHub Pages est autorisée.
-6. Déployer GitHub Pages depuis le dossier configuré dans le dépôt.
+### Récupérer l'APK
+1. Ouvre l'onglet **Actions** du dépôt GitHub.
+2. Choisis **Construire APK Android**.
+3. Appuie sur **Run workflow** si le lancement automatique n'a pas démarré.
+4. Attends la coche verte de réussite.
+5. Ouvre l'exécution terminée et télécharge l'artefact `planning-best-a-l-ouest-debug-apk`.
+6. Décompresse l'archive téléchargée et installe `app-debug.apk` sur ton Android.
 
-## Ajouter un tondeur
-- Créer son compte dans Supabase Auth.
-- Ajouter son `user_id` et son nom dans `public.team_members`.
-- Les comptes doivent être membres de la même équipe (la V3 utilise une seule équipe commune).
+## Important : Supabase n'est pas encore configuré
+L'APK peut être compilé et installé maintenant. En revanche, les comptes, les enregistrements, les commentaires partagés et la synchronisation entre téléphones ne fonctionneront pas tant que le projet Supabase n'aura pas été créé et que `config.js` n'aura pas reçu son URL et sa clé publique anon/publishable. Ne mets jamais la clé `service_role` dans l'application.
 
-## Important : limites à connaître
-Cette archive est une version source prête à connecter/déployer, pas une application déjà hébergée ni validée en production.
-La synchronisation Realtime est implémentée côté interface et les tables sont ajoutées à la publication Realtime dans le SQL, mais elle doit être vérifiée dans votre projet Supabase réel.
-Les conflits de réservation simultanés ne sont pas encore protégés par une transaction serveur ; les participants doivent donc vérifier les disponibilités avant confirmation.
-Les commentaires par journée sont un champ partagé unique par date (la dernière sauvegarde remplace le précédent commentaire), pas un fil de discussion.
-Les commentaires de chantier sont conservés dans le champ `jobs.note`.
-Les contraintes horaires individuelles sont affichées comme règle d'organisation, mais le contrôle automatique strict des horaires dans la base n'est pas encore activé.
+## Fonctions de l'interface
+- Planning sur 30 ou 45 jours.
+- Commentaires par journée et par chantier.
+- Chantiers avec plusieurs tondeurs.
+- Invitations et réponses.
+- Horaires individuels ; valeurs de départ prévues pour Fabien : chantier à partir de 08:00 et départ au plus tard à 18:00.
+
+## Type d'APK
+Le workflow produit un APK debug pour installation et essais. Ce n'est pas encore un APK signé pour publication sur le Play Store.
