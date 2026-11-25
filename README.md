@@ -23,3 +23,9 @@ L'APK peut être compilé et installé maintenant. En revanche, les comptes, les
 
 ## Type d'APK
 Le workflow produit un APK debug pour installation et essais. Ce n'est pas encore un APK signé pour publication sur le Play Store.
+
+## Identité visuelle
+- Logo officiel « LES BEST À L'OUEST » avec le mouton étourdi affiché en grand dans l'en-tête de l'application.
+- Le même visuel remplace l'ancienne icône web.
+- Les ressources Android sont générées depuis `assets/icon-only.png` par le workflow GitHub Actions.
+- Écran de démarrage Android préparé avec `assets/splash.png`.

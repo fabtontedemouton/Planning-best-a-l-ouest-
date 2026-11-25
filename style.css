@@ -11,3 +11,9 @@
 .daynotes{margin-top:10px;background:#78aee012;border:1px solid #78aee033;border-radius:12px;padding:10px;color:#d7e8f6;font-size:11px}.daynotes button{float:right;background:transparent;color:var(--green);border:0;font-weight:900;font-size:11px}
 textarea{width:100%;margin-top:7px;border:1px solid var(--line);background:#101a14;color:var(--text);border-radius:12px;padding:13px;font:inherit;resize:vertical}
 @media(max-width:520px){.section-head{flex-wrap:wrap;gap:8px}.range-switch{margin-left:auto}.calendar{grid-template-columns:repeat(7,minmax(0,1fr))}.day{min-height:86px}}
+
+/* Identité officielle LES BEST À L'OUEST */
+.topbar{height:116px;min-height:116px;padding:6px max(12px,calc((100% - 760px)/2));background:#080808ee;border-bottom:2px solid #d9a51c}
+.brand{width:100%;height:100%;display:flex;align-items:center;justify-content:flex-start;gap:0}
+.brand-mark-img{display:block;width:104px;height:104px;max-width:100%;border:0;border-radius:12px;object-fit:contain;object-position:center;background:#080808}
+@media(max-width:430px){.topbar{height:108px;min-height:108px;padding:4px 10px}.brand-mark-img{width:98px;height:98px}}
