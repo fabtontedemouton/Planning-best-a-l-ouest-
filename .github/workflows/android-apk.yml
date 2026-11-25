@@ -1,9 +1,11 @@
+
 name: Construire APK Android
 
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -11,37 +13,58 @@ permissions:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Récupérer le dépôt
+      - name: Recuperer le depot
         uses: actions/checkout@v4
-      - name: Installer Node.js
+
+      - name: Installer Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
+
       - name: Installer Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
-      - name: Préparer les fichiers web
+
+      - name: Preparer les fichiers
         run: |
-          mkdir -p www
+          mkdir -p www assets
           cp index.html app.js config.js style.css manifest.webmanifest icon-512.png www/
-      - name: Installer Capacitor et préparer Android
+          cp resources/icon.png assets/icon-only.png
+          cp resources/splash.png assets/splash.png
+
+      - name: Installer les dependances
         run: |
-          npm init -y
-          npm install @capacitor/core@7 @capacitor/android@7 @capacitor/cli@7
+          npm install
+          npm install --save-dev @capacitor/assets
+
+      - name: Generer Android et les icones
+        run: |
           npx cap add android
+          npx capacitor-assets generate --android
           npx cap sync android
-      - name: Compiler l'APK debug
+
+      - name: Verifier les icones
+        run: |
+          test -f android/app/src/main/res/mipmap-hdpi/ic_launcher.png
+          test -f android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
+          test -f android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+          test -f android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+
+      - name: Compiler APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
-      - name: Publier l'APK
+
+      - name: Publier APK
         uses: actions/upload-artifact@v4
         with:
-          name: planning-best-a-l-ouest-debug-apk
+          name: LES-BEST-A-LOUEST-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
+          
