@@ -264,7 +264,7 @@ $('loginBtn').onclick=async()=>{
   const pin=$('memberPin').value.trim();
   const msg=$('msg');
 
-  if(!/^\\d{4}$/.test(pin)) {
+  if(!/^\d{4}$/.test(pin)) {
     msg.textContent='Le code PIN doit contenir exactement 4 chiffres.';
     return;
   }
