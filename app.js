@@ -33,41 +33,40 @@ function dayStatus(uid,day) {
 }
 
 async function init() {
-  if(!C||C.SUPABASE_URL.includes('VOTRE-')) {
-    $('msg').textContent='Configure Supabase dans config.js avant la mise en service.';
-    return;
-  }
-
-  db=supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY,{
-    auth:{persistSession:true,autoRefreshToken:true}
-  });
-
-  const {data:{session},error}=await db.auth.getSession();
-  if(error) {
-    $('msg').textContent='Erreur de connexion : '+error.message;
-    return;
-  }
-
-  if(session) {
-    const {data:profile,error:profileError}=await db
-      .from('team_members').select('display_name')
-      .eq('user_id',session.user.id).maybeSingle();
-    if(profileError) {
-      $('msg').textContent='Impossible de vérifier ton profil : '+profileError.message;
+  try {
+    if(!C || !C.SUPABASE_URL || C.SUPABASE_URL.includes('VOTRE-')) {
+      $('msg').textContent='Configure Supabase dans config.js avant la mise en service.';
       return;
     }
-    if(profile) {
-      $('memberName').value=profile.display_name;
-      $('memberName').readOnly=true;
-      $('loginTitle').textContent='Content de te revoir !';
-      $('loginIntro').textContent='Entre ton code PIN pour ouvrir le planning.';
-      $('loginBtn').textContent='OUVRIR LE PLANNING →';
-    }
-  }
 
-  db.auth.onAuthStateChange((event)=>{
-    if(event==='SIGNED_OUT')location.reload();
-  });
+    db=supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY,{
+      auth:{persistSession:true,autoRefreshToken:true}
+    });
+
+    const {data:{session},error}=await db.auth.getSession();
+    if(error) throw error;
+
+    if(session) {
+      const {data:profile,error:profileError}=await db
+        .from('team_members').select('display_name')
+        .eq('user_id',session.user.id).maybeSingle();
+      if(profileError) throw profileError;
+      if(profile) {
+        $('memberName').value=profile.display_name || '';
+        $('memberName').readOnly=true;
+        $('loginTitle').textContent='Content de te revoir !';
+        $('loginIntro').textContent='Entre ton code PIN pour ouvrir le planning.';
+        $('loginBtn').textContent='OUVRIR LE PLANNING →';
+      }
+    }
+
+    db.auth.onAuthStateChange((event,s)=>{
+      if(s && event==='SIGNED_IN') setTimeout(()=>enter(s.user),0);
+      else if(event==='SIGNED_OUT') location.reload();
+    });
+  } catch(e) {
+    $('msg').textContent='Erreur de démarrage : '+(e.message||e);
+  }
 }
 
 async function enter(user) {
@@ -263,51 +262,60 @@ async function answer(id,status) {
 $('loginBtn').onclick=async()=>{
   const name=$('memberName').value.trim();
   const pin=$('memberPin').value.trim();
+  const msg=$('msg');
+
   if(!/^\\d{4}$/.test(pin)) {
-    $('msg').textContent='Le code PIN doit contenir exactement 4 chiffres.';
+    msg.textContent='Le code PIN doit contenir exactement 4 chiffres.';
+    return;
+  }
+  if(!db) {
+    msg.textContent='Connexion à Supabase non initialisée. Recharge l’application.';
     return;
   }
 
-  $('loginBtn').disabled=true;
-  $('msg').textContent='Connexion…';
+  const btn=$('loginBtn');
+  btn.disabled=true;
+  msg.textContent='Connexion en cours…';
+
   try {
     let {data:{session},error}=await db.auth.getSession();
-    if(error)throw error;
+    if(error) throw error;
 
     if(!session) {
       const signed=await db.auth.signInAnonymously();
-      if(signed.error)throw signed.error;
+      if(signed.error) throw signed.error;
       session=signed.data.session;
     }
-    if(!session?.user)throw new Error('Connexion anonyme impossible.');
+    if(!session || !session.user) throw new Error('Supabase n’a pas créé de session.');
 
     const uid=session.user.id;
     const {data:profile,error:profileError}=await db
       .from('team_members').select('user_id,display_name')
       .eq('user_id',uid).maybeSingle();
-    if(profileError)throw profileError;
+    if(profileError) throw profileError;
 
     const pinKey='best-ouest-pin:'+uid;
     const savedPin=localStorage.getItem(pinKey);
+
     if(profile) {
-      if(savedPin && savedPin!==pin)throw new Error('Code PIN incorrect.');
-      if(!savedPin)localStorage.setItem(pinKey,pin);
+      if(savedPin && savedPin!==pin) throw new Error('Code PIN incorrect.');
+      if(!savedPin) localStorage.setItem(pinKey,pin);
     } else {
-      if(!name)throw new Error('Entre ton prénom pour créer ton profil.');
+      if(!name) throw new Error('Entre ton prénom pour créer ton profil.');
       const {error:insertError}=await db.from('team_members').insert({
-        user_id:uid,display_name:name
+        user_id:uid,
+        display_name:name
       });
-      if(insertError)throw insertError;
+      if(insertError) throw insertError;
       localStorage.setItem(pinKey,pin);
     }
 
-    $('msg').textContent='';
-    $('memberPin').value='';
+    msg.textContent='Profil validé, ouverture du planning…';
     await enter(session.user);
   } catch(e) {
-    $('msg').textContent=e.message||'Connexion impossible.';
+    msg.textContent=e.message||'Connexion impossible.';
   } finally {
-    $('loginBtn').disabled=false;
+    btn.disabled=false;
   }
 };
 
@@ -427,4 +435,5 @@ $('createJob').onclick=async()=>{
 $('saveDayNote').onclick=saveDayNote;
 
 init();
- 
+
+                                                     
