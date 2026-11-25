@@ -42,12 +42,31 @@ async function init() {
     auth:{persistSession:true,autoRefreshToken:true}
   });
 
-  const {data:{session}}=await db.auth.getSession();
-  if(session)await enter(session.user);
+  const {data:{session},error}=await db.auth.getSession();
+  if(error) {
+    $('msg').textContent='Erreur de connexion : '+error.message;
+    return;
+  }
 
-  db.auth.onAuthStateChange((event,s)=>{
-    if(s)setTimeout(()=>enter(s.user),0);
-    else if(event==='SIGNED_OUT')location.reload();
+  if(session) {
+    const {data:profile,error:profileError}=await db
+      .from('team_members').select('display_name')
+      .eq('user_id',session.user.id).maybeSingle();
+    if(profileError) {
+      $('msg').textContent='Impossible de vérifier ton profil : '+profileError.message;
+      return;
+    }
+    if(profile) {
+      $('memberName').value=profile.display_name;
+      $('memberName').readOnly=true;
+      $('loginTitle').textContent='Content de te revoir !';
+      $('loginIntro').textContent='Entre ton code PIN pour ouvrir le planning.';
+      $('loginBtn').textContent='OUVRIR LE PLANNING →';
+    }
+  }
+
+  db.auth.onAuthStateChange((event)=>{
+    if(event==='SIGNED_OUT')location.reload();
   });
 }
 
@@ -242,20 +261,66 @@ async function answer(id,status) {
 }
 
 $('loginBtn').onclick=async()=>{
-  const email=$('email').value.trim();
-  if(!email)return toast('Entre ton adresse e-mail');
+  const name=$('memberName').value.trim();
+  const pin=$('memberPin').value.trim();
+  if(!/^\\d{4}$/.test(pin)) {
+    $('msg').textContent='Le code PIN doit contenir exactement 4 chiffres.';
+    return;
+  }
 
-  const {error}=await db.auth.signInWithOtp({
-    email,
-    options:{
-      emailRedirectTo:'https://fabtontedemouton.github.io/Planning-best-a-l-ouest-/'
+  $('loginBtn').disabled=true;
+  $('msg').textContent='Connexion…';
+  try {
+    let {data:{session},error}=await db.auth.getSession();
+    if(error)throw error;
+
+    if(!session) {
+      const signed=await db.auth.signInAnonymously();
+      if(signed.error)throw signed.error;
+      session=signed.data.session;
     }
-  });
+    if(!session?.user)throw new Error('Connexion anonyme impossible.');
 
-  $('msg').textContent=error?.message||'Lien envoyé. Regarde ta boîte mail.';
+    const uid=session.user.id;
+    const {data:profile,error:profileError}=await db
+      .from('team_members').select('user_id,display_name')
+      .eq('user_id',uid).maybeSingle();
+    if(profileError)throw profileError;
+
+    const pinKey='best-ouest-pin:'+uid;
+    const savedPin=localStorage.getItem(pinKey);
+    if(profile) {
+      if(savedPin && savedPin!==pin)throw new Error('Code PIN incorrect.');
+      if(!savedPin)localStorage.setItem(pinKey,pin);
+    } else {
+      if(!name)throw new Error('Entre ton prénom pour créer ton profil.');
+      const {error:insertError}=await db.from('team_members').insert({
+        user_id:uid,display_name:name
+      });
+      if(insertError)throw insertError;
+      localStorage.setItem(pinKey,pin);
+    }
+
+    $('msg').textContent='';
+    $('memberPin').value='';
+    await enter(session.user);
+  } catch(e) {
+    $('msg').textContent=e.message||'Connexion impossible.';
+  } finally {
+    $('loginBtn').disabled=false;
+  }
 };
 
-$('logout').onclick=()=>db.auth.signOut();
+$('logout').onclick=()=>{
+  $('app').hidden=true;
+  $('login').hidden=false;
+  $('logout').hidden=true;
+  $('memberPin').value='';
+  $('loginTitle').textContent='Te revoilà !';
+  $('loginIntro').textContent='Entre ton code PIN pour ouvrir le planning.';
+  $('loginBtn').textContent='OUVRIR LE PLANNING →';
+  $('msg').textContent='';
+};
 $('prev').onclick=()=>{weekOffset--;drawCalendar()};
 $('next').onclick=()=>{weekOffset++;drawCalendar()};
 $('range30').onclick=()=>{rangeDays=30;weekOffset=0;drawCalendar()};

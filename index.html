@@ -15,14 +15,15 @@
 </header>
 <main>
 <section id="login" class="login-card">
-  <div class="eyebrow">ESPACE ÉQUIPE</div><h1>On cale les<br><em>chantiers ?</em></h1>
-  <p>Le planning de l'équipe, les dispos et les coups de main. Tout au même endroit.</p>
-  <label>Ton adresse e-mail<input id="email" type="email" placeholder="nom@exemple.fr" autocomplete="email"></label>
-  <button id="loginBtn" class="primary full">RECEVOIR MON LIEN <span>→</span></button><p id="msg" class="hint"></p>
-  <div class="login-foot">🐏 Pensé par des tondeurs, pour des tondeurs.</div>
+  <div class="eyebrow">ESPACE ÉQUIPE · LES BEST À L’OUEST</div><h1 id="loginTitle">On cale les<br><em>chantiers ?</em></h1>
+  <p id="loginIntro">Choisis ton prénom et ton code PIN personnel pour rejoindre le planning partagé.</p>
+  <label>Ton prénom<input id="memberName" type="text" placeholder="Ton prénom" maxlength="32" autocomplete="name"></label>
+  <label>Ton code PIN (4 chiffres)<input id="memberPin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="••••" autocomplete="off"></label>
+  <button id="loginBtn" class="primary full">REJOINDRE L’ÉQUIPE →</button><p id="msg" class="hint" aria-live="polite"></p>
+  <div class="login-foot">🐏 Un téléphone par tondeur · Planning partagé en direct.</div>
 </section>
 <section id="app" hidden>
-  <div class="welcome"><div><div class="eyebrow">TABLEAU DE BORD</div><h1>Salut <span id="myname">l'équipe</span> 👋</h1><p>Prêt à remplir la semaine ?</p></div><div class="wool-stamp">LES BEST<br><b>✂</b><br>À L’OUEST</div></div>
+  <div class="welcome"><div><div class="eyebrow">PLANNING PARTAGÉ · LES BEST À L’OUEST</div><h1>Salut <span id="myname">l'équipe</span> 👋</h1><p>Prêt à remplir la semaine ?</p></div><div class="wool-stamp">LES BEST<br><b>✂</b><br>À L’OUEST</div></div>
   <div class="quick-stats">
     <div class="stat"><span class="stat-icon green">✓</span><div><b id="statfree">—</b><small>dispos aujourd'hui</small></div></div>
     <div class="stat"><span class="stat-icon blue">↗</span><div><b id="statpending">—</b><small>demandes à voir</small></div></div>
@@ -63,7 +64,7 @@
   </section>
   <section id="team" class="subpanel" hidden><div class="subhead"><button class="back" data-back>← Retour</button><h2>L'équipe</h2></div>
     <div id="teamlist"></div>
-    <div class="notice">Pour ajouter un tondeur : crée son compte dans Supabase Auth, puis ajoute son identifiant et son nom dans la table <b>team_members</b>. Aucun nombre maximum n'est fixé dans l'application.</div>
+    <div class="notice">Chaque tondeur rejoint depuis son propre téléphone avec son prénom et un PIN à 4 chiffres. Les profils apparaissent ensuite automatiquement dans le planning partagé. Aucun nombre maximum n'est fixé dans l'application.</div>
   </section>
   <section class="section upcoming"><div class="section-head"><div><div class="eyebrow">À VENIR</div><h2>Les prochains chantiers</h2></div></div><div id="joblist"></div></section>
 </section>
