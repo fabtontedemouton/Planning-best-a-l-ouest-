@@ -39,17 +39,26 @@ jobs:
           npm install
           npm install --no-save @capacitor/assets sharp
 
-      - name: Generer les vraies icones Android et l'ecran de lancement
+      - name: Ajouter la plateforme Android
+        run: |
+          if [ ! -d android ]; then
+            npx cap add android
+          fi
+
+      - name: Generer les icones Android
         run: |
           node --input-type=module <<'NODE'
           import sharp from 'sharp';
           import fs from 'node:fs';
 
           const source = 'icon-512.png';
-          if (!fs.existsSync(source)) throw new Error('icon-512.png est introuvable');
+          if (!fs.existsSync(source)) throw new Error('icon-512.png introuvable');
 
           await sharp(source)
-            .resize(1024, 1024, { fit: 'contain', background: { r: 16, g: 25, b: 20, alpha: 0 } })
+            .resize(1024, 1024, {
+              fit: 'contain',
+              background: { r: 16, g: 25, b: 20, alpha: 0 }
+            })
             .png()
             .toFile('assets/icon-only.png');
 
@@ -70,6 +79,7 @@ jobs:
             .png()
             .toFile('assets/splash.png');
           NODE
+
           npx capacitor-assets generate --android
           npx cap sync android
 
@@ -79,7 +89,7 @@ jobs:
           test -f android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
           test -f android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
           test -f android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
-          echo "Toutes les tailles d'icones Android sont presentes."
+          echo "Toutes les icones sont presentes."
 
       - name: Compiler APK
         run: |
