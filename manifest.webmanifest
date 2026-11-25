@@ -1,17 +1,9 @@
 {
   "name": "LES BEST À L'OUEST",
-  "short_name": "Les Best",
+  "short_name": "LES BEST",
   "start_url": "./",
-  "scope": "./",
   "display": "standalone",
-  "background_color": "#101914",
+  "background_color": "#050706",
   "theme_color": "#101914",
-  "icons": [
-    {
-      "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ]
+  "icons": [{"src":"icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}]
 }
