@@ -33,8 +33,8 @@ jobs:
         run: |
           mkdir -p www assets
           cp index.html app.js config.js style.css manifest.webmanifest icon-512.png www/
-          cp resources/icon.png assets/icon-only.png
-          cp resources/splash.png assets/splash.png
+          cp icon-only.png assets/icon-only.png
+          cp splash.png assets/splash.png
 
       - name: Installer les dependances
         run: |
