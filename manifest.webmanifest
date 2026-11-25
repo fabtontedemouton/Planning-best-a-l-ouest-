@@ -1,6 +1,6 @@
 {
-  "name": "LES BEST À L'OUEST – Planning",
-  "short_name": "LES BEST",
+  "name": "LES BEST À L'OUEST",
+  "short_name": "Les Best",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -11,13 +11,7 @@
       "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
   ]
 }
