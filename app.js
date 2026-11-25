@@ -53,7 +53,6 @@ async function init() {
       if(profileError) throw profileError;
       if(profile) {
         $('memberName').value=profile.display_name || '';
-        $('memberName').readOnly=true;
         $('loginTitle').textContent='Content de te revoir !';
         $('loginIntro').textContent='Entre ton code PIN pour ouvrir le planning.';
         $('loginBtn').textContent='OUVRIR LE PLANNING →';
@@ -264,7 +263,7 @@ $('loginBtn').onclick=async()=>{
   const pin=$('memberPin').value.trim();
   const msg=$('msg');
 
-  if(!/^\d{4}$/.test(pin)) {
+  if(!/^\\d{4}$/.test(pin)) {
     msg.textContent='Le code PIN doit contenir exactement 4 chiffres.';
     return;
   }
@@ -300,6 +299,13 @@ $('loginBtn').onclick=async()=>{
     if(profile) {
       if(savedPin && savedPin!==pin) throw new Error('Code PIN incorrect.');
       if(!savedPin) localStorage.setItem(pinKey,pin);
+      if(!name) throw new Error('Entre ton prénom.');
+      if(name !== profile.display_name) {
+        const {error:renameError}=await db.from('team_members')
+          .update({display_name:name})
+          .eq('user_id',uid);
+        if(renameError) throw renameError;
+      }
     } else {
       if(!name) throw new Error('Entre ton prénom pour créer ton profil.');
       const {error:insertError}=await db.from('team_members').insert({
