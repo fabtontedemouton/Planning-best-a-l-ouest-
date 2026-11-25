@@ -29,30 +29,57 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Preparer les fichiers
+      - name: Preparer les fichiers web
         run: |
           mkdir -p www assets
           cp index.html app.js config.js style.css manifest.webmanifest icon-512.png www/
-          cp icon-only.png assets/icon-only.png
-          cp splash.png assets/splash.png
 
-      - name: Installer les dependances
+      - name: Installer les outils de generation
         run: |
           npm install
-          npm install --save-dev @capacitor/assets
+          npm install --no-save @capacitor/assets sharp
 
-      - name: Generer Android et les icones
+      - name: Generer les vraies icones Android et l'ecran de lancement
         run: |
-          npx cap add android
+          node --input-type=module <<'NODE'
+          import sharp from 'sharp';
+          import fs from 'node:fs';
+
+          const source = 'icon-512.png';
+          if (!fs.existsSync(source)) throw new Error('icon-512.png est introuvable');
+
+          await sharp(source)
+            .resize(1024, 1024, { fit: 'contain', background: { r: 16, g: 25, b: 20, alpha: 0 } })
+            .png()
+            .toFile('assets/icon-only.png');
+
+          const logo = await sharp(source)
+            .resize(900, 900, { fit: 'contain' })
+            .png()
+            .toBuffer();
+
+          await sharp({
+            create: {
+              width: 2732,
+              height: 2732,
+              channels: 4,
+              background: { r: 16, g: 25, b: 20, alpha: 1 }
+            }
+          })
+            .composite([{ input: logo, gravity: 'centre' }])
+            .png()
+            .toFile('assets/splash.png');
+          NODE
           npx capacitor-assets generate --android
           npx cap sync android
 
-      - name: Verifier les icones
+      - name: Verifier les icones Android
         run: |
           test -f android/app/src/main/res/mipmap-hdpi/ic_launcher.png
           test -f android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
           test -f android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
           test -f android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+          echo "Toutes les tailles d'icones Android sont presentes."
 
       - name: Compiler APK
         run: |
