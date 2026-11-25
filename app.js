@@ -152,10 +152,14 @@ function drawCalendar() {
     el.innerHTML=`<div class="dow">${d.toLocaleDateString('fr-FR',{weekday:'short'})}</div><div class="num">${d.getDate()}</div>`;
 
     members.forEach(m=>{
-      const s=dayStatus(m.user_id,iso);
+      const status=dayStatus(m.user_id,iso);
+
+      // Case vide si aucune disponibilité ou aucun chantier confirmé
+      if(status==='unknown') return;
+
       const pill=document.createElement('div');
-      pill.className='person-pill '+s;
-      pillSet(pill,m,s);
+      pill.className='person-pill '+status;
+      pillSet(pill,m,status);
       el.append(pill);
     });
 
@@ -441,5 +445,3 @@ $('createJob').onclick=async()=>{
 $('saveDayNote').onclick=saveDayNote;
 
 init();
-
-                                                     
