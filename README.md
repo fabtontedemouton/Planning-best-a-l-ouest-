@@ -54,3 +54,7 @@ Pour reconstruire l'APK, remplacer les fichiers du dépôt par le contenu du dos
 - Les couleurs du calendrier lisent et écrivent désormais toujours sur le compte Fabien principal `bb960439-df3d-491d-9adc-26c31914a3e1`, identifié dans la requête Supabase de l'utilisateur. Cela évite qu'un ancien profil Fabien en doublon soit choisi.
 - Le workflow Android réécrit explicitement les icônes `mipmap-*`, les icônes adaptatives Android 8+ et les références de l'AndroidManifest après `cap sync`, avec le logo officiel. Cela évite de conserver l'icône générique Capacitor.
 - Après compilation, installer le nouvel APK. Android peut garder le raccourci précédent en cache : supprimer l'ancien raccourci et ajouter le nouveau si nécessaire.
+
+
+## Correctif workflow icône Android
+Le workflow ne supprime plus `assets/` au début de la compilation. Il recrée aussi `assets/icon-foreground.png` depuis `logo-best-a-l-ouest.png` après le nettoyage, avant la génération Capacitor et avant la copie dans les dossiers mipmap Android. Cela évite que le foreground requis soit effacé avant utilisation.

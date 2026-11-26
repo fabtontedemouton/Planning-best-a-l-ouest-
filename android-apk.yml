@@ -31,7 +31,7 @@ jobs:
 
       - name: Preparer les fichiers web
         run: |
-          rm -rf www assets android/app/src/main/res/mipmap-*
+          rm -rf www android/app/src/main/res/mipmap-*
           mkdir -p www assets
           cp index.html app.js config.js style.css manifest.webmanifest icon-192.png icon-512.png www/
 
@@ -53,7 +53,15 @@ jobs:
           import fs from 'node:fs';
 
           const source = 'icon-512.png';
+          const originalLogo = 'logo-best-a-l-ouest.png';
           if (!fs.existsSync(source)) throw new Error('icon-512.png introuvable');
+          if (!fs.existsSync(originalLogo)) throw new Error('logo-best-a-l-ouest.png introuvable');
+
+          // Recréer le foreground APRÈS le nettoyage du dossier assets.
+          await sharp(originalLogo)
+            .resize(700, 700, { fit: 'contain' })
+            .png()
+            .toFile('assets/icon-foreground.png');
 
           await sharp(source)
             .resize(1024, 1024, {
