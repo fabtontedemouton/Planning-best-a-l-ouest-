@@ -20,3 +20,32 @@ textarea{width:100%;margin-top:7px;border:1px solid var(--line);background:#101a
 .topbar .brand-logo-img{display:block!important;width:min(92vw,360px)!important;height:auto!important;max-height:none!important;object-fit:contain!important;object-position:center!important;margin:0 auto!important;border:0!important;border-radius:0!important}
 .topbar #logout{position:absolute;right:12px;top:12px}
 @media(max-width:430px){.topbar .brand-logo-img{width:min(92vw,340px)!important}}
+
+/* Planning compact : menu flottant et statut sur toute la case */
+.menu-bar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.menu-toggle{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:11px;padding:9px 14px;font-size:12px;font-weight:900}
+.main-menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px;padding:10px;background:#111d16;border:1px solid var(--line);border-radius:14px}
+.main-menu button{background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:11px 8px;text-align:left;font-size:12px;font-weight:800}
+.day.focus-available{background:#286b35!important;border:1px solid #54b96a!important;color:#fff}
+.day.focus-limited{background:#b68a16!important;border:1px solid #e8c34b!important;color:#17130a}
+.day.focus-unavailable{background:#8f302c!important;border:1px solid #dc625b!important;color:#fff}
+.day.focus-busy{background:#245f9c!important;border:1px solid #6da9e7!important;color:#fff}
+.day.focus-available .dow,.day.focus-unavailable .dow,.day.focus-busy .dow{color:#e8f2e8}
+.day.focus-limited .dow{color:#fff5cf}
+.day.focus-available .num,.day.focus-unavailable .num,.day.focus-busy .num{color:#fff}
+.day.focus-limited .num{color:#17130a}
+.day-limit{font-size:18px;font-weight:1000;text-align:center;margin-top:7px}
+.day-participants{font-size:9px;font-weight:900;line-height:1.15;text-align:center;overflow-wrap:anywhere;margin-top:7px}
+.day-action-menu{position:fixed;z-index:20;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92vw,390px);max-height:82vh;overflow:auto;background:#17231b;border:1px solid #657a57;border-radius:18px;padding:16px;box-shadow:0 18px 70px #000b}
+.day-menu-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.day-menu-head h3{margin:4px 0 0;text-transform:capitalize;font-size:18px}
+.close-menu{border:1px solid var(--line);background:#101a14;color:var(--text);border-radius:9px;width:34px;height:34px;font-size:23px;line-height:1}
+.day-status-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.status-choice{border:1px solid transparent;border-radius:10px;padding:11px 8px;font-size:11px;font-weight:900;text-align:left}
+.status-green{background:#286b35;color:#fff;border-color:#54b96a}
+.status-yellow{background:#b68a16;color:#17130a;border-color:#e8c34b}
+.status-red{background:#8f302c;color:#fff;border-color:#dc625b}
+.secondary{background:#26372b;color:#e7efe3;border:1px solid #52654b;border-radius:12px;padding:12px;font-weight:800}
+.day-jobs-preview{border-top:1px solid var(--line);margin-top:13px;padding-top:8px;font-size:11px;color:var(--muted)}
+.day-jobs-preview p{margin:6px 0}
+@media(max-width:430px){.day-participants{font-size:7px}.day-action-menu{padding:13px}.status-choice{font-size:10px}}

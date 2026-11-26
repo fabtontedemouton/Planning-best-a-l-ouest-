@@ -25,11 +25,34 @@ function memberName(id) {
   return members.find(m=>m.user_id===id)?.display_name||'Tondeur';
 }
 
+function focusMember() {
+  return members.find(m=>(m.display_name||'').trim().toLowerCase()==='fabien')
+    || members.find(m=>m.user_id===me?.id)
+    || members[0];
+}
+
 function dayStatus(uid,day) {
-  const mine=availability.find(a=>a.user_id===uid&&a.day===day);
-  const busy=participants.some(p=>p.user_id===uid&&p.status==='accepted'&&jobs.some(j=>j.id===p.job_id&&j.day===day&&j.status!=='cancelled'));
-  if(busy)return 'busy';
-  return mine?.status||'unknown';
+  const focus=focusMember();
+  const target=focus?.user_id||uid;
+  const hasConfirmed=jobs.some(j=>j.day===day&&j.status!=='cancelled'&&participants.some(p=>p.job_id===j.id&&p.status==='accepted'));
+  if(hasConfirmed)return 'busy';
+  const record=availability.find(a=>a.user_id===target&&a.day===day);
+  return record?.status||'available';
+}
+
+function dayLimitLetter(day) {
+  const focus=focusMember();
+  const record=availability.find(a=>a.user_id===focus?.user_id&&a.day===day);
+  const value=(record?.note||'').trim().toUpperCase();
+  return value==='S'?'S':'M';
+}
+
+function acceptedNames(day) {
+  const names=[];
+  jobs.filter(j=>j.day===day&&j.status!=='cancelled').forEach(j=>participants.filter(p=>p.job_id===j.id&&p.status==='accepted').forEach(p=>{
+    const name=memberName(p.user_id); if(!names.includes(name))names.push(name);
+  }));
+  return names;
 }
 
 async function init() {
@@ -129,7 +152,7 @@ function render() {
   const pending=participants.filter(p=>p.user_id===me.id&&p.status==='invited').length;
   $('statpending').textContent=pending;
   const day=dateISO(today());
-  $('statfree').textContent=members.filter(m=>['available','limited'].includes(dayStatus(m.user_id,day))).length;
+  $('statfree').textContent=['available','limited'].includes(dayStatus(focusMember()?.user_id,day))?'1':'0';
 }
 
 function drawCalendar() {
@@ -151,17 +174,20 @@ function drawCalendar() {
 
     el.innerHTML=`<div class="dow">${d.toLocaleDateString('fr-FR',{weekday:'short'})}</div><div class="num">${d.getDate()}</div>`;
 
-    members.forEach(m=>{
-      const status=dayStatus(m.user_id,iso);
-
-      // Case vide si aucune disponibilité ou aucun chantier confirmé
-      if(status==='unknown') return;
-
-      const pill=document.createElement('div');
-      pill.className='person-pill '+status;
-      pillSet(pill,m,status);
-      el.append(pill);
-    });
+    const focus=focusMember();
+    const status=dayStatus(focus?.user_id,iso);
+    el.classList.add('focus-'+status);
+    if(status==='busy') {
+      const label=document.createElement('div');
+      label.className='day-participants';
+      label.textContent=acceptedNames(iso).join(', ')||'CHANTIER';
+      el.append(label);
+    } else if(status==='limited') {
+      const label=document.createElement('div');
+      label.className='day-limit';
+      label.textContent=dayLimitLetter(iso);
+      el.append(label);
+    }
 
     if(dayNotes.some(n=>n.day===iso)) {
       const chip=document.createElement('div');
@@ -170,12 +196,37 @@ function drawCalendar() {
       el.append(chip);
     }
 
-    el.onclick=()=>openDayNote(iso);
+    el.onclick=()=>openDayActions(iso);
     $('calendar').append(el);
   }
 
   $('range30').classList.toggle('active',rangeDays===30);
   $('range45').classList.toggle('active',rangeDays===45);
+}
+
+function openDayActions(day) {
+  selectedDay=day;
+  const label=new Date(day+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+  $('dayActionTitle').textContent=label;
+  const names=acceptedNames(day);
+  const jobsToday=jobs.filter(j=>j.day===day&&j.status!=='cancelled');
+  $('dayJobsPreview').innerHTML=jobsToday.length?'<b>Chantiers prévus</b>'+jobsToday.map(j=>`<p>${esc(j.title)} · ${esc(participants.filter(p=>p.job_id===j.id&&p.status==='accepted').map(p=>memberName(p.user_id)).join(', ')||'Réponses en attente')}</p>`).join(''):'<p class="muted">Aucun chantier prévu.</p>';
+  const isFocus=focusMember()?.user_id===me?.id;
+  document.querySelectorAll('[data-daystatus]').forEach(b=>{b.hidden=!isFocus;});
+  $('dayActionMenu').hidden=false;
+  $('mainMenu').hidden=true;
+  $('menuToggle').setAttribute('aria-expanded','false');
+}
+
+async function setDayStatus(choice) {
+  if(!selectedDay)return;
+  const status=choice.startsWith('limited')?'limited':choice;
+  const note=choice==='limitedS'?'S':choice==='limitedM'?'M':'';
+  const {error}=await db.from('availability').upsert({user_id:me.id,day:selectedDay,status,note},{onConflict:'user_id,day'});
+  if(error)return toast('Disponibilité non enregistrée : '+error.message);
+  $('dayActionMenu').hidden=true;
+  toast('Couleur de la journée mise à jour');
+  await refresh();
 }
 
 function pillSet(el,m,s) {
@@ -223,7 +274,7 @@ function renderRequests() {
 
     const c=document.createElement('div');
     c.className='card';
-    c.innerHTML=`<h3>${esc(j.title)}</h3><p>${esc(j.day)} · ${esc(j.start_time.slice(0,5))}–${esc(j.end_time.slice(0,5))}</p><p>Proposé par ${esc(memberName(j.created_by))}</p>${j.note?`<p>📝 ${esc(j.note)}</p>`:''}<div class="card-actions"><button class="accept">J'ACCEPTE</button><button class="reject">INDISPONIBLE</button></div>`;
+    c.innerHTML=`<h3>${esc(j.title)}</h3><p>${esc(j.day)}</p><p>Proposé par ${esc(memberName(j.created_by))}</p>${j.note?`<p>📝 ${esc(j.note)}</p>`:''}<div class="card-actions"><button class="accept">J'ACCEPTE</button><button class="reject">INDISPONIBLE</button></div>`;
 
     c.querySelector('.accept').onclick=()=>answer(p.id,'accepted');
     c.querySelector('.reject').onclick=()=>answer(p.id,'declined');
@@ -240,7 +291,7 @@ function renderJobs() {
     const names=ps.filter(p=>p.status==='accepted').map(p=>memberName(p.user_id));
     const c=document.createElement('div');
     c.className='card';
-    c.innerHTML=`<h3>🐑 ${esc(j.title)}</h3><p>${esc(j.day)} · ${esc(j.start_time.slice(0,5))}–${esc(j.end_time.slice(0,5))}</p><p>✂️ ${names.map(esc).join(' · ')||'En attente des réponses'}</p>${j.note?`<p>📝 ${esc(j.note)}</p>`:''}`;
+    c.innerHTML=`<h3>🐑 ${esc(j.title)}</h3><p>${esc(j.day)}</p><p>✂️ ${names.map(esc).join(' · ')||'En attente des réponses'}</p>${j.note?`<p>📝 ${esc(j.note)}</p>`:''}`;
     $('joblist').append(c);
   });
 }
@@ -350,14 +401,14 @@ document.querySelectorAll('[data-panel]').forEach(b=>{
     showPanel(id);
 
     if(id==='availability') {
-      $('adate').value=dateISO(today());
-      const mine=members.find(m=>m.user_id===me.id);
-      $('earliest').value=(mine?.earliest_start||'08:00').slice(0,5);
-      $('latest').value=(mine?.latest_finish||'18:00').slice(0,5);
+      $('adate').value=selectedDay||dateISO(today());
+      $('astatus').value='available';
+      $('limitPeriod').value='M';
+      $('limitLabel').hidden=true;
     }
 
     if(id==='job') {
-      $('jdate').value=dateISO(today());
+      $('jdate').value=selectedDay||dateISO(today());
       $('memberchecks').innerHTML=members.filter(m=>m.user_id!==me.id).map(m=>`<label class="member-option"><input type="checkbox" value="${m.user_id}"><span>${esc(m.display_name)}</span></label>`).join('')||'<p class="muted">Ajoute d’abord les autres membres.</p>';
     }
   };
@@ -365,31 +416,16 @@ document.querySelectorAll('[data-panel]').forEach(b=>{
 
 document.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>showPanel(''));
 
+$('astatus').onchange=()=>{$('limitLabel').hidden=$('astatus').value!=='limited';};
 $('saveA').onclick=async()=>{
   const day=$('adate').value;
   if(!day)return toast('Choisis une date');
-
-  const earliest=$('earliest').value||'08:00';
-  const latest=$('latest').value||'18:00';
-  if(earliest>=latest)return toast('Vérifie tes horaires');
-
-  const profile=await db.from('team_members').update({
-    earliest_start:earliest,
-    latest_finish:latest
-  }).eq('user_id',me.id);
-
-  if(profile.error)return toast(profile.error.message);
-
-  const {error}=await db.from('availability').upsert({
-    user_id:me.id,
-    day,
-    status:$('astatus').value,
-    note:$('anote').value
-  },{onConflict:'user_id,day'});
-
-  if(error)toast(error.message);
+  const status=$('astatus').value;
+  const note=status==='limited'?$('limitPeriod').value:'';
+  const {error}=await db.from('availability').upsert({user_id:me.id,day,status,note},{onConflict:'user_id,day'});
+  if(error)toast('Disponibilité non enregistrée : '+error.message);
   else {
-    toast('Disponibilité et horaires enregistrés');
+    toast('Disponibilité enregistrée');
     showPanel('');
     await refresh();
   }
@@ -398,16 +434,10 @@ $('saveA').onclick=async()=>{
 $('createJob').onclick=async()=>{
   const title=$('jname').value.trim();
   const day=$('jdate').value;
-  const start=$('jstart').value;
-  const end=$('jend').value;
+  const start='08:00';
+  const end='17:00';
 
-  if(!title||!day||!start||!end||start>=end)return toast('Vérifie le nom, la date et les horaires');
-
-  const mine=members.find(m=>m.user_id===me.id);
-  const earliest=(mine?.earliest_start||'08:00').slice(0,5);
-  const latest=(mine?.latest_finish||'18:00').slice(0,5);
-
-  if(start<earliest||end>latest)return toast('Ce chantier dépasse tes horaires personnels ('+earliest+'–'+latest+')');
+  if(!title||!day)return toast('Vérifie le nom et la date');
 
   const selected=[...document.querySelectorAll('#memberchecks input:checked')].map(x=>x.value);
 
@@ -441,6 +471,21 @@ $('createJob').onclick=async()=>{
   showPanel('');
   await refresh();
 };
+
+$('menuToggle').onclick=()=>{
+  const opening=$('mainMenu').hidden;
+  $('mainMenu').hidden=!opening;
+  $('menuToggle').setAttribute('aria-expanded',String(opening));
+};
+$('closeDayMenu').onclick=()=>{$('dayActionMenu').hidden=true;};
+document.querySelectorAll('[data-daystatus]').forEach(b=>b.onclick=()=>setDayStatus(b.dataset.daystatus));
+$('dayProposeJob').onclick=()=>{
+  $('dayActionMenu').hidden=true;
+  showPanel('job');
+  $('jdate').value=selectedDay;
+  $('memberchecks').innerHTML=members.filter(m=>m.user_id!==me.id).map(m=>`<label class="member-option"><input type="checkbox" value="${m.user_id}"><span>${esc(m.display_name)}</span></label>`).join('')||'<p class="muted">Ajoute d’abord les autres membres.</p>';
+};
+$('dayViewNotes').onclick=()=>{ $('dayActionMenu').hidden=true; openDayNote(selectedDay); };
 
 $('saveDayNote').onclick=saveDayNote;
 
