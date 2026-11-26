@@ -48,3 +48,9 @@ Exécuter `RETIRER_MEMBRE_EQUIPE.sql` dans Supabase SQL Editor. Dans Équipe, Fa
 - Icône Android native générée depuis le logo officiel dans `assets/` avec `@capacitor/assets`. Le workflow exécute `npx capacitor-assets generate --android` avant la synchronisation Capacitor.
 - Icône PWA 192/512 et manifest inclus.
 Pour reconstruire l'APK, remplacer les fichiers du dépôt par le contenu du dossier, vérifier que `RETIRER_MEMBRE_EQUIPE.sql` a été exécuté dans Supabase, puis lancer le workflow Android. Android peut conserver l'ancienne icône en cache : après installation du nouvel APK, si l'icône ne change pas, supprimer le raccourci de l'écran d'accueil et le recréer, ou désinstaller l'ancienne application après vérification des données synchronisées.
+
+
+## Correctif ciblé : couleurs et icône Android
+- Les couleurs du calendrier lisent et écrivent désormais toujours sur le compte Fabien principal `bb960439-df3d-491d-9adc-26c31914a3e1`, identifié dans la requête Supabase de l'utilisateur. Cela évite qu'un ancien profil Fabien en doublon soit choisi.
+- Le workflow Android réécrit explicitement les icônes `mipmap-*`, les icônes adaptatives Android 8+ et les références de l'AndroidManifest après `cap sync`, avec le logo officiel. Cela évite de conserver l'icône générique Capacitor.
+- Après compilation, installer le nouvel APK. Android peut garder le raccourci précédent en cache : supprimer l'ancien raccourci et ajouter le nouveau si nécessaire.

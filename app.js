@@ -35,9 +35,13 @@ function isFabien() {
   return (myProfile?.display_name || memberName(me?.id) || '').trim().toLowerCase()==='fabien';
 }
 
+// Identifiant du compte Fabien principal, confirmé dans Supabase.
+const FABIEN_MAIN_USER_ID = 'bb960439-df3d-491d-9adc-26c31914a3e1';
+
 function focusMember() {
-  return members.find(m=>(m.display_name||'').trim().toLowerCase()==='fabien')
-    || members.find(m=>m.user_id===me?.id)
+  return members.find(m=>m.user_id===FABIEN_MAIN_USER_ID)
+    || members.find(m=>m.user_id===me?.id && (m.display_name||'').trim().toLowerCase()==='fabien')
+    || members.find(m=>(m.display_name||'').trim().toLowerCase()==='fabien')
     || members[0];
 }
 
@@ -262,7 +266,7 @@ async function setDayStatus(choice) {
   if(!selectedDay)return;
   const status=choice.startsWith('limited')?'limited':choice;
   const note=choice==='limitedS'?'S':choice==='limitedM'?'M':'';
-  const target=me.id;
+  const target=focusMember()?.user_id || me.id;
   const {error}=await db.from('availability').upsert({user_id:target,day:selectedDay,status,note},{onConflict:'user_id,day'});
   if(error)return toast('Disponibilité non enregistrée : '+error.message);
   $('dayActionMenu').hidden=true;
