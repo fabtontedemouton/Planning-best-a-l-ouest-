@@ -472,6 +472,8 @@ document.querySelectorAll('[data-panel]').forEach(b=>{
   b.onclick=()=>{
     const id=b.dataset.panel;
     showPanel(id);
+    $('mainMenu').hidden=true;
+    $('menuToggle').setAttribute('aria-expanded','false');
 
     if(id==='availability') {
       $('adate').value=selectedDay||dateISO(today());
@@ -546,11 +548,18 @@ $('createJob').onclick=async()=>{
   await refresh();
 };
 
-$('menuToggle').onclick=()=>{
+$('menuToggle').onclick=(event)=>{
+  event.stopPropagation();
   const opening=$('mainMenu').hidden;
   $('mainMenu').hidden=!opening;
   $('menuToggle').setAttribute('aria-expanded',String(opening));
 };
+document.addEventListener('click',event=>{
+  if(!$('mainMenu').hidden && !event.target.closest('#mainMenu') && !event.target.closest('#menuToggle')) {
+    $('mainMenu').hidden=true;
+    $('menuToggle').setAttribute('aria-expanded','false');
+  }
+});
 $('closeDayMenu').onclick=()=>{$('dayActionMenu').hidden=true;};
 document.querySelectorAll('[data-daystatus]').forEach(b=>b.onclick=()=>setDayStatus(b.dataset.daystatus));
 $('dayProposeJob').onclick=()=>{

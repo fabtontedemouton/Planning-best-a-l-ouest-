@@ -39,3 +39,12 @@ Le profil personnel est chargé séparément au démarrage pour éviter que le r
 
 ## Retirer un tondeur depuis l'application
 Exécuter `RETIRER_MEMBRE_EQUIPE.sql` dans Supabase SQL Editor. Dans Équipe, Fabien voit ensuite un bouton « Retirer » sur chaque autre profil actif. Le retrait est une désactivation réversible (`active=false`) : les disponibilités, chantiers, invitations et historiques ne sont pas supprimés. Le compte retiré ne peut plus ouvrir le planning. Fabien ne peut pas retirer son propre compte.
+
+
+## Pack final - calendrier, menu et icône Android
+- Calendrier affiché mois par mois avec navigation précédente/suivante.
+- Menu hamburger en haut à gauche, en superposition, qui se ferme après sélection ou clic extérieur.
+- Rôles et retrait réversible des membres via `remove_team_member` (exécuter `RETIRER_MEMBRE_EQUIPE.sql` dans Supabase).
+- Icône Android native générée depuis le logo officiel dans `assets/` avec `@capacitor/assets`. Le workflow exécute `npx capacitor-assets generate --android` avant la synchronisation Capacitor.
+- Icône PWA 192/512 et manifest inclus.
+Pour reconstruire l'APK, remplacer les fichiers du dépôt par le contenu du dossier, vérifier que `RETIRER_MEMBRE_EQUIPE.sql` a été exécuté dans Supabase, puis lancer le workflow Android. Android peut conserver l'ancienne icône en cache : après installation du nouvel APK, si l'icône ne change pas, supprimer le raccourci de l'écran d'accueil et le recréer, ou désinstaller l'ancienne application après vérification des données synchronisées.

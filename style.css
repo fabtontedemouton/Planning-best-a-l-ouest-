@@ -71,3 +71,10 @@ textarea{width:100%;margin-top:7px;border:1px solid var(--line);background:#101a
  .day .num{font-size:15px;margin:2px 0 4px}
  .day-participants{font-size:7px}
 }
+
+/* Menu principal compact en haut à gauche, en superposition du calendrier */
+.topbar{position:relative!important}
+.top-menu-toggle{position:absolute!important;left:12px;top:12px;z-index:30;width:44px;height:44px;padding:0!important;display:grid;place-items:center;font-size:23px!important;background:#17251d!important;box-shadow:0 4px 14px #0006}
+.top-main-menu{position:absolute!important;left:12px!important;top:62px!important;z-index:40!important;width:min(270px,calc(100vw - 24px))!important;margin:0!important;display:grid!important;grid-template-columns:1fr!important;box-shadow:0 14px 35px #000b!important;backdrop-filter:blur(16px);background:#101914f5!important}
+.top-main-menu[hidden]{display:none!important}
+.action-section{display:none!important}
