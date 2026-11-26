@@ -1,6 +1,6 @@
 
 const C = window.FAB_CONFIG;
-let db, me, members=[], availability=[], jobs=[], participants=[], dayNotes=[], weekOffset=0, rangeDays=45, selectedDay=null, channel=null;
+let db, me, myProfile=null, members=[], availability=[], jobs=[], participants=[], dayNotes=[], weekOffset=0, rangeDays=45, selectedDay=null, channel=null;
 
 const $ = id => document.getElementById(id);
 const dateISO = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -26,12 +26,13 @@ function showPanel(id) {
 }
 
 function memberName(id) {
+  if(id===me?.id && myProfile?.display_name) return myProfile.display_name;
   return members.find(m=>m.user_id===id)?.display_name||'Tondeur';
 }
 
-// Seul Fabien peut modifier les disponibilités et les couleurs du calendrier.
+// Le rôle est calculé à partir du profil personnel récupéré directement après connexion.
 function isFabien() {
-  return (memberName(me?.id)||'').trim().toLowerCase()==='fabien';
+  return (myProfile?.display_name || memberName(me?.id) || '').trim().toLowerCase()==='fabien';
 }
 
 function focusMember() {
@@ -113,6 +114,15 @@ async function refresh() {
   const from=dateISO(today()),to=new Date(today());
   to.setDate(to.getDate()+60);
 
+  const {data:ownProfile,error:ownProfileError}=await db
+    .from('team_members').select('user_id,display_name')
+    .eq('user_id',me.id).maybeSingle();
+  if(ownProfileError) {
+    toast('Impossible de lire ton profil : '+ownProfileError.message);
+    return;
+  }
+  myProfile=ownProfile;
+
   const [m,a,j,p,n]=await Promise.all([
     db.from('team_members').select('*').order('display_name'),
     db.from('availability').select('*').gte('day',from).lte('day',dateISO(to)),
@@ -134,8 +144,8 @@ async function refresh() {
   participants=p.data||[];
   dayNotes=n.data||[];
 
-  const mine=members.find(x=>x.user_id===me.id);
-  $('myname').textContent=mine?.display_name||'l’équipe';
+  const mine=members.find(x=>x.user_id===me.id)||myProfile;
+  $('myname').textContent=mine?.display_name||'Profil introuvable';
   applyRolePermissions();
   render();
   renderTeam();
@@ -370,6 +380,7 @@ $('loginBtn').onclick=async()=>{
     const savedPin=localStorage.getItem(pinKey);
 
     if(profile) {
+      myProfile=profile;
       if(savedPin && savedPin!==pin) throw new Error('Code PIN incorrect.');
       if(!savedPin) localStorage.setItem(pinKey,pin);
       if(!name) throw new Error('Entre ton prénom.');
@@ -386,6 +397,7 @@ $('loginBtn').onclick=async()=>{
         display_name:name
       });
       if(insertError) throw insertError;
+      myProfile={user_id:uid,display_name:name};
       localStorage.setItem(pinKey,pin);
     }
 
