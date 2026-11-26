@@ -1,6 +1,6 @@
 
 const C = window.FAB_CONFIG;
-let db, me, myProfile=null, members=[], availability=[], jobs=[], participants=[], dayNotes=[], weekOffset=0, rangeDays=45, selectedDay=null, channel=null;
+let db, me, myProfile=null, members=[], availability=[], jobs=[], participants=[], dayNotes=[], monthOffset=0, selectedDay=null, channel=null;
 
 const $ = id => document.getElementById(id);
 const dateISO = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -115,13 +115,18 @@ async function refresh() {
   to.setDate(to.getDate()+60);
 
   const {data:ownProfile,error:ownProfileError}=await db
-    .from('team_members').select('user_id,display_name')
+    .from('team_members').select('user_id,display_name,active')
     .eq('user_id',me.id).maybeSingle();
   if(ownProfileError) {
     toast('Impossible de lire ton profil : '+ownProfileError.message);
     return;
   }
   myProfile=ownProfile;
+  if(!myProfile || myProfile.active===false) {
+    toast('Ton accès à cette équipe a été désactivé ou ton profil est introuvable.');
+    await db.auth.signOut();
+    return;
+  }
 
   const [m,a,j,p,n]=await Promise.all([
     db.from('team_members').select('*').order('display_name'),
@@ -138,7 +143,7 @@ async function refresh() {
     }
   }
 
-  members=m.data||[];
+  members=(m.data||[]).filter(x=>x.active!==false);
   availability=a.data||[];
   jobs=j.data||[];
   participants=p.data||[];
@@ -176,23 +181,40 @@ function render() {
 }
 
 function drawCalendar() {
-  const start=monday(today());
-  start.setDate(start.getDate()+weekOffset*7);
-  const end=new Date(start);
-  end.setDate(end.getDate()+rangeDays-1);
+  const base=today();
+  const month=new Date(base.getFullYear(),base.getMonth()+monthOffset,1);
+  const year=month.getFullYear();
+  const monthIndex=month.getMonth();
+  const firstDay=new Date(year,monthIndex,1);
+  const lastDay=new Date(year,monthIndex+1,0);
+  const offset=(firstDay.getDay()+6)%7;
+  const totalCells=Math.ceil((offset+lastDay.getDate())/7)*7;
 
-  $('weeklabel').textContent=start.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' – '+end.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
+  $('weeklabel').textContent=month.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
   $('calendar').innerHTML='';
   $('calendar').style.gridTemplateColumns='repeat(7,minmax(0,1fr))';
 
-  for(let i=0;i<rangeDays;i++) {
-    const d=new Date(start);
-    d.setDate(d.getDate()+i);
+  ['LUN.','MAR.','MER.','JEU.','VEN.','SAM.','DIM.'].forEach(name=>{
+    const head=document.createElement('div');
+    head.className='calendar-weekday';
+    head.textContent=name;
+    $('calendar').append(head);
+  });
+
+  for(let cell=0;cell<totalCells;cell++) {
+    const dayNumber=cell-offset+1;
+    if(dayNumber<1 || dayNumber>lastDay.getDate()) {
+      const blank=document.createElement('div');
+      blank.className='day-empty';
+      $('calendar').append(blank);
+      continue;
+    }
+
+    const d=new Date(year,monthIndex,dayNumber);
     const iso=dateISO(d);
     const el=document.createElement('div');
     el.className='day'+(iso===dateISO(today())?' today':'')+(iso===selectedDay?' selected':'');
-
-    el.innerHTML=`<div class="dow">${d.toLocaleDateString('fr-FR',{weekday:'short'})}</div><div class="num">${d.getDate()}</div>`;
+    el.innerHTML=`<div class="num">${dayNumber}</div>`;
 
     const focus=focusMember();
     const status=dayStatus(focus?.user_id,iso);
@@ -220,10 +242,8 @@ function drawCalendar() {
     $('calendar').append(el);
   }
 
-  $('range30').classList.toggle('active',rangeDays===30);
-  $('range45').classList.toggle('active',rangeDays===45);
+  $('range30').classList.add('active');
 }
-
 function openDayActions(day) {
   selectedDay=day;
   const label=new Date(day+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
@@ -325,7 +345,29 @@ function applyRolePermissions() {
 }
 
 function renderTeam() {
-  $('teamlist').innerHTML=members.map(m=>`<div class="card"><h3>✂️ ${esc(m.display_name)} ${m.user_id===me.id?'· MOI':''}</h3><p>Disponibilités et invitations personnelles</p></div>`).join('')||'<p class="muted">Aucun membre.</p>';
+  const ordered=[...members].sort((a,b)=>(a.user_id===me.id?-1:0)-(b.user_id===me.id?-1:0));
+  const seen=new Set();
+  const unique=ordered.filter(m=>{
+    const key=(m.display_name||'').trim().toLocaleLowerCase('fr-FR');
+    if(!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  const admin=isFabien();
+  $('teamlist').innerHTML=unique.map(m=>`<div class="card team-member-card"><div><h3>✂️ ${esc(m.display_name)} ${m.user_id===me.id?'· MOI':''}</h3><p>Compte actif de l’équipe</p></div>${admin&&m.user_id!==me.id?`<button class="danger remove-member" data-remove-member="${m.user_id}" data-member-name="${esc(m.display_name)}">Retirer</button>`:''}</div>`).join('')||'<p class="muted">Aucun membre.</p>';
+  document.querySelectorAll('[data-remove-member]').forEach(button=>{
+    button.onclick=()=>removeTeamMember(button.dataset.removeMember,button.dataset.memberName);
+  });
+}
+
+async function removeTeamMember(userId,name) {
+  if(!isFabien()) return toast('Seul Fabien peut retirer un membre.');
+  if(!userId || userId===me.id) return toast('Tu ne peux pas retirer ton propre compte.');
+  if(!window.confirm('Retirer '+name+' de l’équipe ? Ses anciens chantiers et historiques seront conservés.')) return;
+  const {error}=await db.rpc('remove_team_member',{target_user_id:userId});
+  if(error) return toast('Retrait impossible : '+error.message);
+  toast(name+' a été retiré de l’équipe.');
+  await refresh();
 }
 
 async function answer(id,status) {
@@ -372,7 +414,7 @@ $('loginBtn').onclick=async()=>{
 
     const uid=session.user.id;
     const {data:profile,error:profileError}=await db
-      .from('team_members').select('user_id,display_name')
+      .from('team_members').select('user_id,display_name,active')
       .eq('user_id',uid).maybeSingle();
     if(profileError) throw profileError;
 
@@ -380,6 +422,7 @@ $('loginBtn').onclick=async()=>{
     const savedPin=localStorage.getItem(pinKey);
 
     if(profile) {
+      if(profile.active===false) throw new Error('Ce compte a été retiré de l’équipe. Contacte Fabien.');
       myProfile=profile;
       if(savedPin && savedPin!==pin) throw new Error('Code PIN incorrect.');
       if(!savedPin) localStorage.setItem(pinKey,pin);
@@ -420,10 +463,10 @@ $('logout').onclick=()=>{
   $('loginBtn').textContent='OUVRIR LE PLANNING →';
   $('msg').textContent='';
 };
-$('prev').onclick=()=>{weekOffset--;drawCalendar()};
-$('next').onclick=()=>{weekOffset++;drawCalendar()};
-$('range30').onclick=()=>{rangeDays=30;weekOffset=0;drawCalendar()};
-$('range45').onclick=()=>{rangeDays=45;weekOffset=0;drawCalendar()};
+$('prev').onclick=()=>{monthOffset--;drawCalendar()};
+$('next').onclick=()=>{monthOffset++;drawCalendar()};
+$('range30').onclick=()=>{monthOffset=0;drawCalendar()};
+
 
 document.querySelectorAll('[data-panel]').forEach(b=>{
   b.onclick=()=>{

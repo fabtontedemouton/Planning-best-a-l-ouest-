@@ -27,3 +27,15 @@ Seul le membre dont le nom affiché est exactement « Fabien » peut modifier le
 4. Le compte dont le profil porte exactement le nom `Fabien` peut seul modifier les couleurs et disponibilités.
 5. Laurent et Kiki peuvent proposer des chantiers, inviter des tondeurs et répondre aux invitations. Ils ne peuvent pas modifier les disponibilités.
 Le profil personnel est chargé séparément au démarrage pour éviter que le rôle administrateur dépende de l'affichage de la liste d'équipe.
+
+
+## Équipe et accès
+- Fabien reste l'administrateur des couleurs et disponibilités.
+- Laurent, Kiki et les autres tondeurs peuvent proposer des chantiers et répondre aux invitations.
+- Un nouveau tondeur rejoint depuis son propre téléphone en saisissant son prénom et un PIN à 4 chiffres. Le PIN est conservé localement sur ce téléphone ; il ne s'agit pas d'un compte avec mot de passe serveur.
+- La liste de l'équipe n'affiche désormais qu'une seule carte par nom. Les anciens profils de test en double restent en base pour préserver les historiques et invitations.
+- Pour l'icône téléphone, installer le nouvel APK Android. Pour une version navigateur, utiliser le menu Chrome > Ajouter à l'écran d'accueil.
+
+
+## Retirer un tondeur depuis l'application
+Exécuter `RETIRER_MEMBRE_EQUIPE.sql` dans Supabase SQL Editor. Dans Équipe, Fabien voit ensuite un bouton « Retirer » sur chaque autre profil actif. Le retrait est une désactivation réversible (`active=false`) : les disponibilités, chantiers, invitations et historiques ne sont pas supprimés. Le compte retiré ne peut plus ouvrir le planning. Fabien ne peut pas retirer son propre compte.
