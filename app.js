@@ -15,6 +15,10 @@ function toast(t) {
 }
 
 function showPanel(id) {
+  if(id==='availability' && !isFabien()) {
+    toast('Seul Fabien peut modifier les disponibilités.');
+    id='';
+  }
   ['availability','job','requests','team','daynotePanel'].forEach(x=>$(x).hidden=x!==id);
   const home=!id;
   document.querySelector('.action-section').hidden=!home;
@@ -23,6 +27,11 @@ function showPanel(id) {
 
 function memberName(id) {
   return members.find(m=>m.user_id===id)?.display_name||'Tondeur';
+}
+
+// Seul Fabien peut modifier les disponibilités et les couleurs du calendrier.
+function isFabien() {
+  return (memberName(me?.id)||'').trim().toLowerCase()==='fabien';
 }
 
 function focusMember() {
@@ -127,6 +136,7 @@ async function refresh() {
 
   const mine=members.find(x=>x.user_id===me.id);
   $('myname').textContent=mine?.display_name||'l’équipe';
+  applyRolePermissions();
   render();
   renderTeam();
 }
@@ -211,15 +221,14 @@ function openDayActions(day) {
   const names=acceptedNames(day);
   const jobsToday=jobs.filter(j=>j.day===day&&j.status!=='cancelled');
   $('dayJobsPreview').innerHTML=jobsToday.length?'<b>Chantiers prévus</b>'+jobsToday.map(j=>`<p>${esc(j.title)} · ${esc(participants.filter(p=>p.job_id===j.id&&p.status==='accepted').map(p=>memberName(p.user_id)).join(', ')||'Réponses en attente')}</p>`).join(''):'<p class="muted">Aucun chantier prévu.</p>';
-  const currentName=memberName(me?.id).trim().toLowerCase();
-  const isFocus=focusMember()?.user_id===me?.id || currentName==='fabien' || currentName.startsWith('fabien ');
-  document.querySelectorAll('[data-daystatus]').forEach(b=>{b.hidden=!isFocus;});
+  document.querySelectorAll('[data-daystatus]').forEach(b=>{b.hidden=!isFabien();});
   $('dayActionMenu').hidden=false;
   $('mainMenu').hidden=true;
   $('menuToggle').setAttribute('aria-expanded','false');
 }
 
 async function setDayStatus(choice) {
+  if(!isFabien())return toast('Seul Fabien peut changer les couleurs du calendrier.');
   if(!selectedDay)return;
   const status=choice.startsWith('limited')?'limited':choice;
   const note=choice==='limitedS'?'S':choice==='limitedM'?'M':'';
@@ -296,6 +305,13 @@ function renderJobs() {
     c.innerHTML=`<h3>🐑 ${esc(j.title)}</h3><p>${esc(j.day)}</p><p>✂️ ${names.map(esc).join(' · ')||'En attente des réponses'}</p>${j.note?`<p>📝 ${esc(j.note)}</p>`:''}`;
     $('joblist').append(c);
   });
+}
+
+function applyRolePermissions() {
+  const admin=isFabien();
+  document.querySelectorAll('[data-daystatus]').forEach(b=>b.hidden=!admin);
+  const availabilityMenu=document.querySelector('[data-panel="availability"]');
+  if(availabilityMenu) availabilityMenu.hidden=!admin;
 }
 
 function renderTeam() {
@@ -420,6 +436,7 @@ document.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>showPanel(''))
 
 $('astatus').onchange=()=>{$('limitLabel').hidden=$('astatus').value!=='limited';};
 $('saveA').onclick=async()=>{
+  if(!isFabien())return toast('Seul Fabien peut modifier les disponibilités.');
   const day=$('adate').value;
   if(!day)return toast('Choisis une date');
   const status=$('astatus').value;

@@ -14,3 +14,7 @@ Le workflow `.github/workflows/android-apk.yml` construit un APK debug à chaque
 `config.js` contient l'URL du projet et la clé publique publishable fournie. Ne jamais y mettre une clé `service_role`.
 
 **À noter :** la compilation génère les ressources Android à partir de `resources/`. L'icône ne changera sur le téléphone qu'après installation du nouvel APK. Le fonctionnement réel de l'authentification et de la synchronisation doit être validé avec un test multi-comptes sur l'URL hébergée autorisée dans Supabase.
+
+
+## Droits de modification des disponibilités
+Seul le membre dont le nom affiché est exactement « Fabien » peut modifier les couleurs et disponibilités. Laurent et Kiki peuvent proposer des chantiers et répondre à leurs invitations. Exécuter `AUTORISATIONS_FABIEN_SEUL.sql` dans Supabase SQL Editor pour appliquer également cette règle côté base de données.
