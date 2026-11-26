@@ -211,7 +211,8 @@ function openDayActions(day) {
   const names=acceptedNames(day);
   const jobsToday=jobs.filter(j=>j.day===day&&j.status!=='cancelled');
   $('dayJobsPreview').innerHTML=jobsToday.length?'<b>Chantiers prévus</b>'+jobsToday.map(j=>`<p>${esc(j.title)} · ${esc(participants.filter(p=>p.job_id===j.id&&p.status==='accepted').map(p=>memberName(p.user_id)).join(', ')||'Réponses en attente')}</p>`).join(''):'<p class="muted">Aucun chantier prévu.</p>';
-  const isFocus=focusMember()?.user_id===me?.id;
+  const currentName=memberName(me?.id).trim().toLowerCase();
+  const isFocus=focusMember()?.user_id===me?.id || currentName==='fabien' || currentName.startsWith('fabien ');
   document.querySelectorAll('[data-daystatus]').forEach(b=>{b.hidden=!isFocus;});
   $('dayActionMenu').hidden=false;
   $('mainMenu').hidden=true;
@@ -222,7 +223,8 @@ async function setDayStatus(choice) {
   if(!selectedDay)return;
   const status=choice.startsWith('limited')?'limited':choice;
   const note=choice==='limitedS'?'S':choice==='limitedM'?'M':'';
-  const {error}=await db.from('availability').upsert({user_id:me.id,day:selectedDay,status,note},{onConflict:'user_id,day'});
+  const target=focusMember()?.user_id || me.id;
+  const {error}=await db.from('availability').upsert({user_id:target,day:selectedDay,status,note},{onConflict:'user_id,day'});
   if(error)return toast('Disponibilité non enregistrée : '+error.message);
   $('dayActionMenu').hidden=true;
   toast('Couleur de la journée mise à jour');
