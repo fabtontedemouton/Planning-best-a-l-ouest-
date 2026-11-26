@@ -223,7 +223,7 @@ async function setDayStatus(choice) {
   if(!selectedDay)return;
   const status=choice.startsWith('limited')?'limited':choice;
   const note=choice==='limitedS'?'S':choice==='limitedM'?'M':'';
-  const target=focusMember()?.user_id || me.id;
+  const target=me.id;
   const {error}=await db.from('availability').upsert({user_id:target,day:selectedDay,status,note},{onConflict:'user_id,day'});
   if(error)return toast('Disponibilité non enregistrée : '+error.message);
   $('dayActionMenu').hidden=true;
