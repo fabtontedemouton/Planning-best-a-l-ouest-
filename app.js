@@ -30,13 +30,13 @@ function memberName(id) {
   return members.find(m=>m.user_id===id)?.display_name||'Tondeur';
 }
 
-// Le rôle est calculé à partir du profil personnel récupéré directement après connexion.
-function isFabien() {
-  return (myProfile?.display_name || memberName(me?.id) || '').trim().toLowerCase()==='fabien';
-}
+// Le rôle administrateur est lié à l'identifiant Supabase unique de Fabien,
+// jamais au prénom seul : les anciens doublons "Fabien" ne deviennent pas admins.
+const FABIEN_MAIN_USER_ID = 'bf1668e5-9738-4092-827e-2dd0f731daaf';
 
-// Identifiant du compte Fabien principal, confirmé dans Supabase.
-const FABIEN_MAIN_USER_ID = 'bb960439-df3d-491d-9adc-26c31914a3e1';
+function isFabien() {
+  return !!me && me.id === FABIEN_MAIN_USER_ID;
+}
 
 function focusMember() {
   return members.find(m=>m.user_id===FABIEN_MAIN_USER_ID)
@@ -174,7 +174,7 @@ async function refresh() {
   invitesLoadedOnce=true;
 
   const mine=members.find(x=>x.user_id===me.id)||myProfile;
-  $('myname').textContent=mine?.display_name||'Profil introuvable';
+  $('myname').textContent=(me.id===FABIEN_MAIN_USER_ID?'Fabien':(mine?.display_name||'Profil introuvable'));
   applyRolePermissions();
   render();
   renderTeam();

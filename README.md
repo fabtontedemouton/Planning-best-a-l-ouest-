@@ -75,3 +75,9 @@ Le workflow force les attributs `android:icon` et `android:roundIcon` dans la ba
 - Une nouvelle invitation déclenche un message dans l'application lorsque le téléphone est connecté au planning.
 - Les propositions affichent séparément les participants acceptés, en attente et indisponibles.
 - Exécuter `CORRECTIF_INVITATIONS_CHANTIERS.sql` une seule fois dans Supabase avant de tester les invitations.
+
+## Correction du compte Fabien (important)
+Avant d'installer cette version, executer une seule fois `CORRECTIF_COMPTE_FABIEN_UNIQUE.sql`
+dans Supabase > SQL Editor. Cette migration rattache les disponibilites des anciens profils
+Fabien au compte actuel du telephone (`bf1668e5-9738-4092-827e-2dd0f731daaf`), desactive
+les doublons sans les supprimer et reserve les droits administrateur a ce seul identifiant.

@@ -11,7 +11,7 @@ as $$
     select 1
     from public.team_members
     where user_id = auth.uid()
-      and lower(trim(display_name)) = 'fabien'
+      and user_id = 'bf1668e5-9738-4092-827e-2dd0f731daaf'::uuid
   );
 $$;
 
