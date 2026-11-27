@@ -78,3 +78,9 @@ textarea{width:100%;margin-top:7px;border:1px solid var(--line);background:#101a
 .top-main-menu{position:absolute!important;left:12px!important;top:62px!important;z-index:40!important;width:min(270px,calc(100vw - 24px))!important;margin:0!important;display:grid!important;grid-template-columns:1fr!important;box-shadow:0 14px 35px #000b!important;backdrop-filter:blur(16px);background:#101914f5!important}
 .top-main-menu[hidden]{display:none!important}
 .action-section{display:none!important}
+
+/* La légende et les journées avec chantier utilisent le même bleu */
+.dot.busy{background:#4b9be8!important}
+.day.focus-busy{background:#245f9c!important;border:2px solid #6da9e7!important;color:#fff!important}
+.day.focus-busy .num{color:#fff!important}
+.day.focus-busy .day-participants{color:#fff!important}

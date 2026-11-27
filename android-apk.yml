@@ -137,28 +137,63 @@ jobs:
             '<?xml version="1.0" encoding="utf-8"?>\n<resources><color name="ic_launcher_background">#09120D</color></resources>');
 
           const manifest = 'android/app/src/main/AndroidManifest.xml';
-          if (fs.existsSync(manifest)) {
-            let xml = fs.readFileSync(manifest, 'utf8');
-            xml = xml.replace(/android:icon="@mipmap\/[^"]+"/, 'android:icon="@mipmap/ic_launcher"');
-            xml = xml.replace(/android:roundIcon="@mipmap\/[^"]+"/, 'android:roundIcon="@mipmap/ic_launcher_round"');
-            fs.writeFileSync(manifest, xml);
+          if (!fs.existsSync(manifest)) throw new Error('AndroidManifest.xml introuvable');
+          let xml = fs.readFileSync(manifest, 'utf8');
+
+          // Force explicitement les deux attributs sur la balise application.
+          const appTag = xml.match(/<application\b[^>]*>/s);
+          if (!appTag) throw new Error('Balise <application> introuvable dans AndroidManifest.xml');
+          let app = appTag[0];
+          if (/android:icon=\"[^\"]+\"/.test(app)) {
+            app = app.replace(/android:icon=\"[^\"]+\"/, 'android:icon=\"@mipmap/ic_launcher\"');
+          } else {
+            app = app.replace(/>$/, ' android:icon=\"@mipmap/ic_launcher\">');
           }
-          console.log('Logo Les Best à l’Ouest installé dans toutes les icônes Android.');
+          if (/android:roundIcon=\"[^\"]+\"/.test(app)) {
+            app = app.replace(/android:roundIcon=\"[^\"]+\"/, 'android:roundIcon=\"@mipmap/ic_launcher_round\"');
+          } else {
+            app = app.replace(/>$/, ' android:roundIcon=\"@mipmap/ic_launcher_round\">');
+          }
+          xml = xml.replace(appTag[0], app);
+          fs.writeFileSync(manifest, xml);
+
+          const check = fs.readFileSync(manifest, 'utf8');
+          if (!check.includes('android:icon=\"@mipmap/ic_launcher\"') ||
+              !check.includes('android:roundIcon=\"@mipmap/ic_launcher_round\"')) {
+            throw new Error('Le manifeste Android ne référence pas les icônes Les Best à l’Ouest');
+          }
+          console.log('Manifeste Android : ic_launcher et ic_launcher_round forcés.');
           NODE
 
       - name: Verifier les icones Android
         run: |
+          set -e
+          test -f android/app/src/main/res/mipmap-mdpi/ic_launcher.png
           test -f android/app/src/main/res/mipmap-hdpi/ic_launcher.png
           test -f android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
           test -f android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
           test -f android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
-          echo "Toutes les icones sont presentes."
+          test -f android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+          test -f android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+          grep -q 'android:icon="@mipmap/ic_launcher"' android/app/src/main/AndroidManifest.xml
+          grep -q 'android:roundIcon="@mipmap/ic_launcher_round"' android/app/src/main/AndroidManifest.xml
+          echo "OK : le manifeste pointe sur les icônes personnalisées Les Best à l’Ouest."
 
       - name: Compiler APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
+
+      - name: Verifier l'icone integree dans l'APK
+        run: |
+          set -e
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          test -f "$APK"
+          AAPT="$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -n 1)"
+          test -n "$AAPT"
+          "$AAPT" dump badging "$APK" | grep -E '^(package:|application-label:|application-icon)'
+          echo "APK compilé et icône déclarée dans le paquet."
 
       - name: Publier APK
         uses: actions/upload-artifact@v4

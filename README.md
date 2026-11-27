@@ -58,3 +58,11 @@ Pour reconstruire l'APK, remplacer les fichiers du dépôt par le contenu du dos
 
 ## Correctif workflow icône Android
 Le workflow ne supprime plus `assets/` au début de la compilation. Il recrée aussi `assets/icon-foreground.png` depuis `logo-best-a-l-ouest.png` après le nettoyage, avant la génération Capacitor et avant la copie dans les dossiers mipmap Android. Cela évite que le foreground requis soit effacé avant utilisation.
+
+
+## Couleur bleue des chantiers
+La pastille « Chantier validé » de la légende est bleue. Toute journée comportant un chantier non annulé est affichée en bleu dans le calendrier mensuel, avec les participants acceptés indiqués dans la case. La création d'un chantier déclenche le rafraîchissement du calendrier.
+
+
+## Contrôle renforcé de l'icône Android
+Le workflow force les attributs `android:icon` et `android:roundIcon` dans la balise application, échoue si les ressources natives sont absentes, puis inspecte les métadonnées de l'APK compilé avec `aapt dump badging`. Cela permet de vérifier le manifeste et l'icône déclarée dans l'APK au lieu de seulement vérifier les PNG sources.

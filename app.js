@@ -48,8 +48,11 @@ function focusMember() {
 function dayStatus(uid,day) {
   const focus=focusMember();
   const target=focus?.user_id||uid;
-  const hasConfirmed=jobs.some(j=>j.day===day&&j.status!=='cancelled'&&participants.some(p=>p.job_id===j.id&&p.status==='accepted'));
-  if(hasConfirmed)return 'busy';
+  // Un chantier actif sur la journée colore toute la case en bleu.
+  // Le créateur est automatiquement considéré comme participant accepté;
+  // on garde aussi le chantier visible si l'envoi des invitations échoue.
+  const hasJob=jobs.some(j=>j.day===day&&j.status!=='cancelled');
+  if(hasJob)return 'busy';
   const record=availability.find(a=>a.user_id===target&&a.day===day);
   return record?.status||'available';
 }
