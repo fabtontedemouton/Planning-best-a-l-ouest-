@@ -133,6 +133,9 @@ async function refresh() {
     return;
   }
   myProfile=ownProfile;
+  if(myProfile?.display_name && $('myname')) {
+  $('myname').textContent = myProfile.display_name;
+  }
   if(!myProfile || myProfile.active===false) {
     toast('Ton accès à cette équipe a été désactivé ou ton profil est introuvable.');
     await db.auth.signOut();
