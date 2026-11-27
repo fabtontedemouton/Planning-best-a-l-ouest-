@@ -84,3 +84,32 @@ textarea{width:100%;margin-top:7px;border:1px solid var(--line);background:#101a
 .day.focus-busy{background:#245f9c!important;border:2px solid #6da9e7!important;color:#fff!important}
 .day.focus-busy .num{color:#fff!important}
 .day.focus-busy .day-participants{color:#fff!important}
+
+/* Invitations : badge visible et accès direct depuis le compteur */
+.pending-stat{cursor:pointer;position:relative}
+.pending-stat.has-pending{outline:2px solid #6da9e7;outline-offset:2px}
+.pending-badge{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:#d84d45;color:#fff;font-size:12px;font-weight:900;margin-left:8px}
+.main-menu button{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.invitation-card{border:1px solid #6da9e7!important}
+.invitation-tag{display:inline-block;margin-bottom:8px;padding:5px 9px;border-radius:8px;background:#245f9c;color:#fff;font-size:11px;font-weight:900;letter-spacing:.04em}
+.invitation-card .accept{background:#b9dc70;color:#102016}
+.invitation-card .reject{background:#82332f;color:#fff}
+.day-job-entry{padding:10px 0;border-top:1px solid #34453c}
+.day-job-entry small{display:block;color:#aebbb2;margin-top:3px}
+.day-job-entry p{margin:5px 0}
+.pending-text{color:#e8bd52!important}
+.declined-text{color:#e27b73!important}
+
+.pending-badge[hidden]{display:none!important}
+
+/* Décaler le bouton hamburger sous la barre d'état Android */
+.top-menu-toggle{
+  top:40px!important;
+}
+.top-main-menu{
+  top:92px!important;
+}
+@media(min-width:700px){
+  .top-menu-toggle{top:24px!important}
+  .top-main-menu{top:76px!important}
+}

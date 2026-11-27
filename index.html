@@ -14,7 +14,7 @@
   <div id="mainMenu" class="main-menu top-main-menu" hidden>
     <button data-panel="availability">🗓️ Mes disponibilités</button>
     <button data-panel="job">🐑 Créer un chantier</button>
-    <button data-panel="requests">📩 Mes invitations</button>
+    <button data-panel="requests">📩 Mes invitations <span id="pendingMenuBadge" class="pending-badge" hidden>0</span></button>
     <button data-panel="team">✂️ Mon équipe</button>
   </div>
   <button id="logout" class="icon-btn" hidden aria-label="Déconnexion">↗</button>
@@ -32,7 +32,7 @@
   <div class="welcome"><div><div class="eyebrow">PLANNING PARTAGÉ · LES BEST À L’OUEST</div><h1>Salut <span id="myname">l'équipe</span> 👋</h1><p>Prêt à remplir la semaine ?</p></div><div class="wool-stamp">LES BEST<br><b>✂</b><br>À L’OUEST</div></div>
   <div class="quick-stats">
     <div class="stat"><span class="stat-icon green">✓</span><div><b id="statfree">—</b><small>dispos aujourd'hui</small></div></div>
-    <div class="stat"><span class="stat-icon blue">↗</span><div><b id="statpending">—</b><small>demandes à voir</small></div></div>
+    <div class="stat pending-stat" id="pendingCard" role="button" tabindex="0" aria-label="Voir les invitations"><span class="stat-icon blue">↗</span><div><b id="statpending">—</b><small>demandes à voir</small></div><span id="pendingBadge" class="pending-badge" hidden>0</span></div>
   </div>
   <section class="section">
     <div class="section-head"><div><div class="eyebrow">VUE MENSUELLE</div><h2>Le planning</h2></div>

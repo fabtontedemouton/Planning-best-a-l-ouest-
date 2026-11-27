@@ -45,14 +45,18 @@ function focusMember() {
     || members[0];
 }
 
+function jobConfirmed(jobId) {
+  const rows=participants.filter(p=>p.job_id===jobId);
+  // Le créateur est accepté d'office, mais les invités doivent tous répondre
+  // positivement avant que le chantier soit affiché comme confirmé en bleu.
+  return rows.length>0 && rows.every(p=>p.status==='accepted');
+}
+
 function dayStatus(uid,day) {
   const focus=focusMember();
   const target=focus?.user_id||uid;
-  // Un chantier actif sur la journée colore toute la case en bleu.
-  // Le créateur est automatiquement considéré comme participant accepté;
-  // on garde aussi le chantier visible si l'envoi des invitations échoue.
-  const hasJob=jobs.some(j=>j.day===day&&j.status!=='cancelled');
-  if(hasJob)return 'busy';
+  const confirmed=jobs.some(j=>j.day===day&&j.status!=='cancelled'&&jobConfirmed(j.id));
+  if(confirmed)return 'busy';
   const record=availability.find(a=>a.user_id===target&&a.day===day);
   return record?.status||'available';
 }
@@ -156,6 +160,19 @@ async function refresh() {
   participants=p.data||[];
   dayNotes=n.data||[];
 
+  const pendingInvites=participants.filter(x=>x.user_id===me.id&&x.status==='invited');
+  const pendingIds=new Set(pendingInvites.map(x=>x.id));
+  if(invitesLoadedOnce) {
+    const fresh=pendingInvites.filter(x=>!seenInviteIds.has(x.id));
+    if(fresh.length) {
+      toast(fresh.length===1?'Nouvelle invitation de chantier reçue !':fresh.length+' nouvelles invitations reçues !');
+    }
+  } else if(pendingInvites.length) {
+    toast('Tu as '+pendingInvites.length+' invitation(s) à confirmer.');
+  }
+  seenInviteIds=pendingIds;
+  invitesLoadedOnce=true;
+
   const mine=members.find(x=>x.user_id===me.id)||myProfile;
   $('myname').textContent=mine?.display_name||'Profil introuvable';
   applyRolePermissions();
@@ -183,6 +200,18 @@ function render() {
   renderJobs();
   const pending=participants.filter(p=>p.user_id===me.id&&p.status==='invited').length;
   $('statpending').textContent=pending;
+  ['pendingBadge','pendingMenuBadge'].forEach(id=>{
+    const badge=$(id);
+    if(badge) {
+      badge.textContent=pending;
+      badge.hidden=pending===0;
+    }
+  });
+  const pendingCard=$('pendingCard');
+  if(pendingCard) {
+    pendingCard.classList.toggle('has-pending',pending>0);
+    pendingCard.setAttribute('aria-label',pending+' invitation(s) à voir');
+  }
   const day=dateISO(today());
   $('statfree').textContent=['available','limited'].includes(dayStatus(focusMember()?.user_id,day))?'1':'0';
 }
@@ -255,9 +284,15 @@ function openDayActions(day) {
   selectedDay=day;
   const label=new Date(day+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
   $('dayActionTitle').textContent=label;
-  const names=acceptedNames(day);
   const jobsToday=jobs.filter(j=>j.day===day&&j.status!=='cancelled');
-  $('dayJobsPreview').innerHTML=jobsToday.length?'<b>Chantiers prévus</b>'+jobsToday.map(j=>`<p>${esc(j.title)} · ${esc(participants.filter(p=>p.job_id===j.id&&p.status==='accepted').map(p=>memberName(p.user_id)).join(', ')||'Réponses en attente')}</p>`).join(''):'<p class="muted">Aucun chantier prévu.</p>';
+  $('dayJobsPreview').innerHTML=jobsToday.length?'<b>Chantiers prévus</b>'+jobsToday.map(j=>{
+    const rows=participants.filter(p=>p.job_id===j.id);
+    const accepted=rows.filter(p=>p.status==='accepted').map(p=>memberName(p.user_id));
+    const waiting=rows.filter(p=>p.status==='invited').map(p=>memberName(p.user_id));
+    const declined=rows.filter(p=>p.status==='declined').map(p=>memberName(p.user_id));
+    const state=jobConfirmed(j.id)?'CHANTIER CONFIRMÉ':'EN ATTENTE DE RÉPONSES';
+    return `<div class="day-job-entry"><b>${esc(j.title)}</b><small>${esc(state)} · proposé par ${esc(memberName(j.created_by))}</small>${accepted.length?`<p>Accepté : ${accepted.map(esc).join(', ')}</p>`:''}${waiting.length?`<p class="pending-text">À confirmer : ${waiting.map(esc).join(', ')}</p>`:''}${declined.length?`<p class="declined-text">Indisponible : ${declined.map(esc).join(', ')}</p>`:''}${j.note?`<p>${esc(j.note)}</p>`:''}</div>`;
+  }).join(''):'<p class="muted">Aucun chantier prévu.</p>';
   document.querySelectorAll('[data-daystatus]').forEach(b=>{b.hidden=!isFabien();});
   $('dayActionMenu').hidden=false;
   $('mainMenu').hidden=true;
@@ -319,11 +354,10 @@ function renderRequests() {
   mine.forEach(p=>{
     const j=jobs.find(x=>x.id===p.job_id);
     if(!j)return;
-
+    const proposer=memberName(j.created_by);
     const c=document.createElement('div');
-    c.className='card';
-    c.innerHTML=`<h3>${esc(j.title)}</h3><p>${esc(j.day)}</p><p>Proposé par ${esc(memberName(j.created_by))}</p>${j.note?`<p>📝 ${esc(j.note)}</p>`:''}<div class="card-actions"><button class="accept">J'ACCEPTE</button><button class="reject">INDISPONIBLE</button></div>`;
-
+    c.className='card invitation-card';
+    c.innerHTML=`<div class="invitation-tag">🔔 INVITATION À CONFIRMER</div><h3>🐑 ${esc(j.title)}</h3><p>📅 ${esc(new Date(j.day+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}))}</p><p>Proposé par <b>${esc(proposer)}</b></p>${j.note?`<p>📝 ${esc(j.note)}</p>`:''}<div class="card-actions"><button class="accept">✓ J'ACCEPTE</button><button class="reject">✕ INDISPONIBLE</button></div>`;
     c.querySelector('.accept').onclick=()=>answer(p.id,'accepted');
     c.querySelector('.reject').onclick=()=>answer(p.id,'declined');
     $('requestlist').append(c);
@@ -517,44 +551,61 @@ $('saveA').onclick=async()=>{
 $('createJob').onclick=async()=>{
   const title=$('jname').value.trim();
   const day=$('jdate').value;
+  const button=$('createJob');
   const start='08:00';
   const end='17:00';
 
   if(!title||!day)return toast('Vérifie le nom et la date');
+  if(!me?.id)return toast('Reconnecte-toi avant de proposer un chantier.');
 
-  const selected=[...document.querySelectorAll('#memberchecks input:checked')].map(x=>x.value);
+  const selected=[...new Set([...document.querySelectorAll('#memberchecks input:checked')].map(x=>x.value).filter(id=>id && id!==me.id))];
+  button.disabled=true;
+  button.textContent='ENVOI EN COURS…';
 
-  const {data:job,error}=await db.from('jobs').insert({
-    created_by:me.id,
-    title,
-    day,
-    start_time:start,
-    end_time:end,
-    note:$('jnote').value,
-    status:'scheduled'
-  }).select().single();
+  try {
+    const {data:job,error}=await db.from('jobs').insert({
+      created_by:me.id,
+      title,
+      day,
+      start_time:start,
+      end_time:end,
+      note:$('jnote').value.trim(),
+      status:'scheduled'
+    }).select().single();
 
-  if(error)return toast(error.message);
+    if(error)throw new Error('Création du chantier impossible : '+error.message);
+    if(!job?.id)throw new Error('Supabase n’a pas retourné le chantier créé.');
 
-  const rows=[
-    {job_id:job.id,user_id:me.id,status:'accepted'},
-    ...selected.map(user_id=>({job_id:job.id,user_id,status:'invited'}))
-  ];
+    const rows=[
+      {job_id:job.id,user_id:me.id,status:'accepted'},
+      ...selected.map(user_id=>({job_id:job.id,user_id,status:'invited'}))
+    ];
+    const result=await db.from('job_participants').insert(rows);
 
-  const result=await db.from('job_participants').insert(rows);
+    if(result.error) {
+      // Ne pas laisser un chantier orphelin qui semblerait confirmé.
+      await db.from('jobs').update({status:'cancelled'}).eq('id',job.id).eq('created_by',me.id);
+      throw new Error('Le chantier a été créé mais les invitations n’ont pas été enregistrées : '+result.error.message+'. Vérifie les droits SQL des invitations.');
+    }
 
-  if(result.error) {
-    toast('Chantier créé, mais invitations non envoyées : '+result.error.message);
-    return;
+    toast(selected.length
+      ? 'Chantier créé : '+selected.length+' invitation(s) envoyée(s).'
+      : 'Chantier créé. Tu n’as sélectionné aucun autre tondeur.');
+    $('jname').value='';
+    $('jnote').value='';
+    showPanel('');
+    await refresh();
+  } catch(error) {
+    toast(error.message||'Erreur lors de la création du chantier.');
+  } finally {
+    button.disabled=false;
+    button.innerHTML='ENVOYER LES INVITATIONS <span>→</span>';
   }
-
-  toast('Chantier créé, invitations envoyées !');
-  $('jname').value='';
-  $('jnote').value='';
-  showPanel('');
-  await refresh();
 };
 
+
+$('pendingCard').onclick=()=>showPanel('requests');
+$('pendingCard').onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();showPanel('requests');}};
 $('menuToggle').onclick=(event)=>{
   event.stopPropagation();
   const opening=$('mainMenu').hidden;

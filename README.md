@@ -66,3 +66,12 @@ La pastille « Chantier validé » de la légende est bleue. Toute journée comp
 
 ## Contrôle renforcé de l'icône Android
 Le workflow force les attributs `android:icon` et `android:roundIcon` dans la balise application, échoue si les ressources natives sont absentes, puis inspecte les métadonnées de l'APK compilé avec `aapt dump badging`. Cela permet de vérifier le manifeste et l'icône déclarée dans l'APK au lieu de seulement vérifier les PNG sources.
+
+
+## Correctif propositions et invitations
+- Un chantier n'est bleu que lorsque tous ses participants ont accepté.
+- Les invitations restent visibles dans « Mes invitations » avec les boutons Accepter / Indisponible.
+- Le compteur « demandes à voir » est cliquable et ouvre directement les invitations; un badge est également affiché dans le menu.
+- Une nouvelle invitation déclenche un message dans l'application lorsque le téléphone est connecté au planning.
+- Les propositions affichent séparément les participants acceptés, en attente et indisponibles.
+- Exécuter `CORRECTIF_INVITATIONS_CHANTIERS.sql` une seule fois dans Supabase avant de tester les invitations.
