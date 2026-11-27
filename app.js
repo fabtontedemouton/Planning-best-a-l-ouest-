@@ -1,6 +1,8 @@
 
 const C = window.FAB_CONFIG;
 let db, me, myProfile=null, members=[], availability=[], jobs=[], participants=[], dayNotes=[], monthOffset=0, selectedDay=null, channel=null;
+let invitesLoadedOnce = false;
+let seenInviteIds = new Set();
 
 const $ = id => document.getElementById(id);
 const dateISO = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -30,18 +32,22 @@ function memberName(id) {
   return members.find(m=>m.user_id===id)?.display_name||'Tondeur';
 }
 
-// Le rôle administrateur est lié à l'identifiant Supabase unique de Fabien,
-// jamais au prénom seul : les anciens doublons "Fabien" ne deviennent pas admins.
+// Identifiant du compte Fabien historique.
 const FABIEN_MAIN_USER_ID = 'bf1668e5-9738-4092-827e-2dd0f731daaf';
 
 function isFabien() {
-  return !!me && me.id === FABIEN_MAIN_USER_ID;
+  // Le rôle suit aussi le profil actif "Fabien".
+  return !!me && (
+    me.id === FABIEN_MAIN_USER_ID ||
+    (myProfile?.active !== false &&
+      (myProfile?.display_name || '').trim().toLowerCase() === 'fabien')
+  );
 }
 
 function focusMember() {
-  return members.find(m=>m.user_id===FABIEN_MAIN_USER_ID)
-    || members.find(m=>m.user_id===me?.id && (m.display_name||'').trim().toLowerCase()==='fabien')
-    || members.find(m=>(m.display_name||'').trim().toLowerCase()==='fabien')
+  return members.find(m=>m.user_id===me?.id && (m.display_name||'').trim().toLowerCase()==='fabien')
+    || members.find(m=>(m.display_name||'').trim().toLowerCase()==='fabien' && m.active!==false)
+    || members.find(m=>m.user_id===FABIEN_MAIN_USER_ID)
     || members[0];
 }
 
@@ -174,7 +180,7 @@ async function refresh() {
   invitesLoadedOnce=true;
 
   const mine=members.find(x=>x.user_id===me.id)||myProfile;
-  $('myname').textContent=(me.id===FABIEN_MAIN_USER_ID?'Fabien':(mine?.display_name||'Profil introuvable'));
+  $('myname').textContent=(mine?.display_name||myProfile?.display_name||(isFabien()?'Fabien':'Profil introuvable'));
   applyRolePermissions();
   render();
   renderTeam();
@@ -280,6 +286,7 @@ function drawCalendar() {
 
   $('range30').classList.add('active');
 }
+
 function openDayActions(day) {
   selectedDay=day;
   const label=new Date(day+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
@@ -506,128 +513,4 @@ $('logout').onclick=()=>{
 };
 $('prev').onclick=()=>{monthOffset--;drawCalendar()};
 $('next').onclick=()=>{monthOffset++;drawCalendar()};
-$('range30').onclick=()=>{monthOffset=0;drawCalendar()};
-
-
-document.querySelectorAll('[data-panel]').forEach(b=>{
-  b.onclick=()=>{
-    const id=b.dataset.panel;
-    showPanel(id);
-    $('mainMenu').hidden=true;
-    $('menuToggle').setAttribute('aria-expanded','false');
-
-    if(id==='availability') {
-      $('adate').value=selectedDay||dateISO(today());
-      $('astatus').value='available';
-      $('limitPeriod').value='M';
-      $('limitLabel').hidden=true;
-    }
-
-    if(id==='job') {
-      $('jdate').value=selectedDay||dateISO(today());
-      $('memberchecks').innerHTML=members.filter(m=>m.user_id!==me.id).map(m=>`<label class="member-option"><input type="checkbox" value="${m.user_id}"><span>${esc(m.display_name)}</span></label>`).join('')||'<p class="muted">Ajoute d’abord les autres membres.</p>';
-    }
-  };
-});
-
-document.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>showPanel(''));
-
-$('astatus').onchange=()=>{$('limitLabel').hidden=$('astatus').value!=='limited';};
-$('saveA').onclick=async()=>{
-  if(!isFabien())return toast('Seul Fabien peut modifier les disponibilités.');
-  const day=$('adate').value;
-  if(!day)return toast('Choisis une date');
-  const status=$('astatus').value;
-  const note=status==='limited'?$('limitPeriod').value:'';
-  const {error}=await db.from('availability').upsert({user_id:me.id,day,status,note},{onConflict:'user_id,day'});
-  if(error)toast('Disponibilité non enregistrée : '+error.message);
-  else {
-    toast('Disponibilité enregistrée');
-    showPanel('');
-    await refresh();
-  }
-};
-
-$('createJob').onclick=async()=>{
-  const title=$('jname').value.trim();
-  const day=$('jdate').value;
-  const button=$('createJob');
-  const start='08:00';
-  const end='17:00';
-
-  if(!title||!day)return toast('Vérifie le nom et la date');
-  if(!me?.id)return toast('Reconnecte-toi avant de proposer un chantier.');
-
-  const selected=[...new Set([...document.querySelectorAll('#memberchecks input:checked')].map(x=>x.value).filter(id=>id && id!==me.id))];
-  button.disabled=true;
-  button.textContent='ENVOI EN COURS…';
-
-  try {
-    const {data:job,error}=await db.from('jobs').insert({
-      created_by:me.id,
-      title,
-      day,
-      start_time:start,
-      end_time:end,
-      note:$('jnote').value.trim(),
-      status:'scheduled'
-    }).select().single();
-
-    if(error)throw new Error('Création du chantier impossible : '+error.message);
-    if(!job?.id)throw new Error('Supabase n’a pas retourné le chantier créé.');
-
-    const rows=[
-      {job_id:job.id,user_id:me.id,status:'accepted'},
-      ...selected.map(user_id=>({job_id:job.id,user_id,status:'invited'}))
-    ];
-    const result=await db.from('job_participants').insert(rows);
-
-    if(result.error) {
-      // Ne pas laisser un chantier orphelin qui semblerait confirmé.
-      await db.from('jobs').update({status:'cancelled'}).eq('id',job.id).eq('created_by',me.id);
-      throw new Error('Le chantier a été créé mais les invitations n’ont pas été enregistrées : '+result.error.message+'. Vérifie les droits SQL des invitations.');
-    }
-
-    toast(selected.length
-      ? 'Chantier créé : '+selected.length+' invitation(s) envoyée(s).'
-      : 'Chantier créé. Tu n’as sélectionné aucun autre tondeur.');
-    $('jname').value='';
-    $('jnote').value='';
-    showPanel('');
-    await refresh();
-  } catch(error) {
-    toast(error.message||'Erreur lors de la création du chantier.');
-  } finally {
-    button.disabled=false;
-    button.innerHTML='ENVOYER LES INVITATIONS <span>→</span>';
-  }
-};
-
-
-$('pendingCard').onclick=()=>showPanel('requests');
-$('pendingCard').onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();showPanel('requests');}};
-$('menuToggle').onclick=(event)=>{
-  event.stopPropagation();
-  const opening=$('mainMenu').hidden;
-  $('mainMenu').hidden=!opening;
-  $('menuToggle').setAttribute('aria-expanded',String(opening));
-};
-document.addEventListener('click',event=>{
-  if(!$('mainMenu').hidden && !event.target.closest('#mainMenu') && !event.target.closest('#menuToggle')) {
-    $('mainMenu').hidden=true;
-    $('menuToggle').setAttribute('aria-expanded','false');
-  }
-});
-$('closeDayMenu').onclick=()=>{$('dayActionMenu').hidden=true;};
-document.querySelectorAll('[data-daystatus]').forEach(b=>b.onclick=()=>setDayStatus(b.dataset.daystatus));
-$('dayProposeJob').onclick=()=>{
-  $('dayActionMenu').hidden=true;
-  showPanel('job');
-  $('jdate').value=selectedDay;
-  $('memberchecks').innerHTML=members.filter(m=>m.user_id!==me.id).map(m=>`<label class="member-option"><input type="checkbox" value="${m.user_id}"><span>${esc(m.display_name)}</span></label>`).join('')||'<p class="muted">Ajoute d’abord les autres membres.</p>';
-};
-$('dayViewNotes').onclick=()=>{ $('dayActionMenu').hidden=true; openDayNote(selectedDay); };
-
-$('saveDayNote').onclick=saveDayNote;
-
-init();
+$('range30
