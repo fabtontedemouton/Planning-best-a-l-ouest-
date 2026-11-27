@@ -32,7 +32,7 @@ function memberName(id) {
 
 // Le rôle administrateur est lié à l'identifiant Supabase unique de Fabien,
 // jamais au prénom seul : les anciens doublons "Fabien" ne deviennent pas admins.
-const FABIEN_MAIN_USER_ID = 'bf1668e5-9738-4092-827e-2dd0f731daaf';
+const FABIEN_MAIN_USER_ID = 'b8a08855-ad52-421e-be3e-06dca42ba205';
 
 function isFabien() {
   return !!me && me.id === FABIEN_MAIN_USER_ID;
