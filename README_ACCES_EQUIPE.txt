@@ -25,3 +25,11 @@ SECURITE :
 - Un membre ne peut écrire que sa propre disponibilité.
 - Un invité ne peut répondre qu'à sa propre invitation.
 - Le créateur ne peut pas accepter/refuser à la place des invités.
+
+
+CORRECTIF DU 28/11/2026 — MENU PARTICIPANTS
+- Le formulaire de création de chantier comporte maintenant un vrai menu déroulant « Participants du chantier ».
+- Le bouton ouvre/ferme la liste des membres actifs de l’équipe (hors créateur).
+- Plusieurs membres peuvent être cochés ; le bouton affiche leurs noms et le compteur.
+- Le fonctionnement des invitations reste individuel : créateur accepté automatiquement, chaque invité répond depuis son compte.
+- Ce ZIP contient le projet complet (HTML, CSS, JavaScript, configuration, ressources graphiques, SQL et workflow Android).

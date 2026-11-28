@@ -64,8 +64,16 @@
   <section id="job" class="subpanel" hidden><div class="subhead"><button class="back" data-back>← Retour</button><h2>Nouveau chantier</h2></div>
     <label>Nom / lieu du chantier<input id="jname" placeholder="Ex. GAEC des Prés"></label>
     <label>Date<input id="jdate" type="date"></label>
-    <label>Qui vient sur ce chantier ?<small class="field-help">Sélectionne autant de tondeurs que nécessaire.</small></label>
-    <div id="memberchecks" class="member-checks"></div>
+    <div class="participant-picker-field">
+      <label for="participantToggle">Participants du chantier<small class="field-help">Choisis les tondeurs à inviter.</small></label>
+      <button type="button" id="participantToggle" class="participant-toggle" aria-expanded="false" aria-controls="participantDropdown">
+        <span id="participantSummary">Sélectionner les participants</span><span class="picker-chevron" aria-hidden="true">⌄</span>
+      </button>
+      <div id="participantDropdown" class="participant-dropdown" hidden>
+        <div class="participant-dropdown-head"><strong>Qui vient ?</strong><span id="participantCount">0 sélectionné</span></div>
+        <div id="memberchecks" class="member-checks"></div>
+      </div>
+    </div>
     <label>Commentaire du chantier<input id="jnote" placeholder="Adresse, élevage, nombre de brebis, rendez-vous…"></label>
     <button id="createJob" class="primary full">ENVOYER LES INVITATIONS <span>→</span></button>
     <p class="hint">Les personnes invitées confirmeront leur présence. Les autres tondeurs restent libres.</p>

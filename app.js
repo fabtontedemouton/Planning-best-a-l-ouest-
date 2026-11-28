@@ -17,8 +17,10 @@ function toast(t) {
 function showPanel(id) {
   ['availability','job','requests','team','daynotePanel'].forEach(x=>$(x).hidden=x!==id);
   const home=!id;
-  document.querySelector('.action-section').hidden=!home;
-  document.querySelector('.upcoming').hidden=!home;
+  const actionSection=document.querySelector('.action-section');
+  if(actionSection) actionSection.hidden=!home;
+  const upcomingSection=document.querySelector('.upcoming');
+  if(upcomingSection) upcomingSection.hidden=!home;
 }
 
 function memberName(id) {
@@ -490,7 +492,10 @@ document.querySelectorAll('[data-panel]').forEach(b=>{
 
     if(id==='job') {
       $('jdate').value=selectedDay||dateISO(today());
-      $('memberchecks').innerHTML=members.filter(m=>m.user_id!==me.id).map(m=>`<label class="member-option"><input type="checkbox" value="${m.user_id}"><span>${esc(m.display_name)}</span></label>`).join('')||'<p class="muted">Ajoute d’abord les autres membres.</p>';
+      $('memberchecks').innerHTML=members.filter(m=>m.user_id!==me.id).map(m=>`<label class="member-option"><input type="checkbox" value="${esc(m.user_id)}"><span>${esc(m.display_name)}</span></label>`).join('')||'<p class="muted">Ajoute d’abord les autres membres.</p>';
+      $('participantDropdown').hidden=true;
+      $('participantToggle').setAttribute('aria-expanded','false');
+      updateParticipantPicker();
     }
   };
 });
@@ -512,6 +517,24 @@ $('saveA').onclick=async()=>{
     await refresh();
   }
 };
+
+function updateParticipantPicker() {
+  const checked=[...document.querySelectorAll('#memberchecks input:checked')];
+  const count=checked.length;
+  $('participantCount').textContent=count+' sélectionné'+(count>1?'s':'');
+  $('participantSummary').textContent=count
+    ? checked.map(input=>input.closest('label')?.querySelector('span')?.textContent||'').filter(Boolean).join(', ')
+    : 'Sélectionner les participants';
+}
+
+$('participantToggle').onclick=()=>{
+  const dropdown=$('participantDropdown');
+  dropdown.hidden=!dropdown.hidden;
+  $('participantToggle').setAttribute('aria-expanded',String(!dropdown.hidden));
+};
+$('memberchecks').addEventListener('change',event=>{
+  if(event.target.matches('input[type="checkbox"]'))updateParticipantPicker();
+});
 
 $('createJob').onclick=async()=>{
   const title=$('jname').value.trim();
