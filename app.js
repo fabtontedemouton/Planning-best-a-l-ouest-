@@ -15,10 +15,6 @@ function toast(t) {
 }
 
 function showPanel(id) {
-  if(id==='availability' && !isFabien()) {
-    toast('Seul Fabien peut modifier les disponibilités.');
-    id='';
-  }
   ['availability','job','requests','team','daynotePanel'].forEach(x=>$(x).hidden=x!==id);
   const home=!id;
   document.querySelector('.action-section').hidden=!home;
@@ -30,20 +26,6 @@ function memberName(id) {
   return members.find(m=>m.user_id===id)?.display_name||'Tondeur';
 }
 
-// Le rôle administrateur est lié à l'identifiant Supabase unique de Fabien,
-// jamais au prénom seul : les anciens doublons "Fabien" ne deviennent pas admins.
-const FABIEN_MAIN_USER_ID = '1cdccd72-80b9-4a5f-af03-412cc361609e';
-function isFabien() {
-  return !!me && me.id === FABIEN_MAIN_USER_ID;
-}
-
-function focusMember() {
-  return members.find(m=>m.user_id===FABIEN_MAIN_USER_ID)
-    || members.find(m=>m.user_id===me?.id && (m.display_name||'').trim().toLowerCase()==='fabien')
-    || members.find(m=>(m.display_name||'').trim().toLowerCase()==='fabien')
-    || members[0];
-}
-
 function jobConfirmed(jobId) {
   const rows=participants.filter(p=>p.job_id===jobId);
   // Le créateur est accepté d'office, mais les invités doivent tous répondre
@@ -52,17 +34,15 @@ function jobConfirmed(jobId) {
 }
 
 function dayStatus(uid,day) {
-  const focus=focusMember();
-  const target=focus?.user_id||uid;
-  const confirmed=jobs.some(j=>j.day===day&&j.status!=='cancelled'&&jobConfirmed(j.id));
+  const target=uid||me?.id;
+  const confirmed=jobs.some(j=>j.day===day&&j.status!=='cancelled'&&participants.some(p=>p.job_id===j.id&&p.user_id===target&&p.status==='accepted'));
   if(confirmed)return 'busy';
   const record=availability.find(a=>a.user_id===target&&a.day===day);
   return record?.status||'available';
 }
 
-function dayLimitLetter(day) {
-  const focus=focusMember();
-  const record=availability.find(a=>a.user_id===focus?.user_id&&a.day===day);
+function dayLimitLetter(day,uid) {
+  const record=availability.find(a=>a.user_id===(uid||me?.id)&&a.day===day);
   const value=(record?.note||'').trim().toUpperCase();
   return value==='S'?'S':'M';
 }
@@ -176,7 +156,7 @@ async function refresh() {
   invitesLoadedOnce=true;
 
   const mine=members.find(x=>x.user_id===me.id)||myProfile;
-  $('myname').textContent=(me.id===FABIEN_MAIN_USER_ID?'Fabien':(mine?.display_name||'Profil introuvable'));
+  $('myname').textContent=mine?.display_name||'Profil introuvable';
   applyRolePermissions();
   render();
   renderTeam();
@@ -215,7 +195,7 @@ function render() {
     pendingCard.setAttribute('aria-label',pending+' invitation(s) à voir');
   }
   const day=dateISO(today());
-  $('statfree').textContent=['available','limited'].includes(dayStatus(focusMember()?.user_id,day))?'1':'0';
+  $('statfree').textContent=['available','limited'].includes(dayStatus(me?.id,day))?'1':'0';
 }
 
 function drawCalendar() {
@@ -254,8 +234,7 @@ function drawCalendar() {
     el.className='day'+(iso===dateISO(today())?' today':'')+(iso===selectedDay?' selected':'');
     el.innerHTML=`<div class="num">${dayNumber}</div>`;
 
-    const focus=focusMember();
-    const status=dayStatus(focus?.user_id,iso);
+    const status=dayStatus(me?.id,iso);
     el.classList.add('focus-'+status);
     if(status==='busy') {
       const label=document.createElement('div');
@@ -265,7 +244,7 @@ function drawCalendar() {
     } else if(status==='limited') {
       const label=document.createElement('div');
       label.className='day-limit';
-      label.textContent=dayLimitLetter(iso);
+      label.textContent=dayLimitLetter(iso,me?.id);
       el.append(label);
     }
 
@@ -295,19 +274,18 @@ function openDayActions(day) {
     const state=jobConfirmed(j.id)?'CHANTIER CONFIRMÉ':'EN ATTENTE DE RÉPONSES';
     return `<div class="day-job-entry"><b>${esc(j.title)}</b><small>${esc(state)} · proposé par ${esc(memberName(j.created_by))}</small>${accepted.length?`<p>Accepté : ${accepted.map(esc).join(', ')}</p>`:''}${waiting.length?`<p class="pending-text">À confirmer : ${waiting.map(esc).join(', ')}</p>`:''}${declined.length?`<p class="declined-text">Indisponible : ${declined.map(esc).join(', ')}</p>`:''}${j.note?`<p>${esc(j.note)}</p>`:''}</div>`;
   }).join(''):'<p class="muted">Aucun chantier prévu.</p>';
-  document.querySelectorAll('[data-daystatus]').forEach(b=>{b.hidden=!isFabien();});
+  document.querySelectorAll('[data-daystatus]').forEach(b=>{b.hidden=false;});
   $('dayActionMenu').hidden=false;
   $('mainMenu').hidden=true;
   $('menuToggle').setAttribute('aria-expanded','false');
 }
 
 async function setDayStatus(choice) {
-  if(!isFabien())return toast('Seul Fabien peut changer les couleurs du calendrier.');
+  if(!me?.id)return toast('Connecte-toi pour modifier tes disponibilités.');
   if(!selectedDay)return;
   const status=choice.startsWith('limited')?'limited':choice;
   const note=choice==='limitedS'?'S':choice==='limitedM'?'M':'';
-  const target=focusMember()?.user_id || me.id;
-  const {error}=await db.from('availability').upsert({user_id:target,day:selectedDay,status,note},{onConflict:'user_id,day'});
+  const {error}=await db.from('availability').upsert({user_id:me.id,day:selectedDay,status,note},{onConflict:'user_id,day'});
   if(error)return toast('Disponibilité non enregistrée : '+error.message);
   $('dayActionMenu').hidden=true;
   toast('Couleur de la journée mise à jour');
@@ -381,10 +359,9 @@ function renderJobs() {
 }
 
 function applyRolePermissions() {
-  const admin=isFabien();
-  document.querySelectorAll('[data-daystatus]').forEach(b=>b.hidden=!admin);
+  document.querySelectorAll('[data-daystatus]').forEach(b=>{b.hidden=false;});
   const availabilityMenu=document.querySelector('[data-panel="availability"]');
-  if(availabilityMenu) availabilityMenu.hidden=!admin;
+  if(availabilityMenu) availabilityMenu.hidden=false;
 }
 
 function renderTeam() {
@@ -396,21 +373,7 @@ function renderTeam() {
     seen.add(key);
     return true;
   });
-  const admin=isFabien();
-  $('teamlist').innerHTML=unique.map(m=>`<div class="card team-member-card"><div><h3>✂️ ${esc(m.display_name)} ${m.user_id===me.id?'· MOI':''}</h3><p>Compte actif de l’équipe</p></div>${admin&&m.user_id!==me.id?`<button class="danger remove-member" data-remove-member="${m.user_id}" data-member-name="${esc(m.display_name)}">Retirer</button>`:''}</div>`).join('')||'<p class="muted">Aucun membre.</p>';
-  document.querySelectorAll('[data-remove-member]').forEach(button=>{
-    button.onclick=()=>removeTeamMember(button.dataset.removeMember,button.dataset.memberName);
-  });
-}
-
-async function removeTeamMember(userId,name) {
-  if(!isFabien()) return toast('Seul Fabien peut retirer un membre.');
-  if(!userId || userId===me.id) return toast('Tu ne peux pas retirer ton propre compte.');
-  if(!window.confirm('Retirer '+name+' de l’équipe ? Ses anciens chantiers et historiques seront conservés.')) return;
-  const {error}=await db.rpc('remove_team_member',{target_user_id:userId});
-  if(error) return toast('Retrait impossible : '+error.message);
-  toast(name+' a été retiré de l’équipe.');
-  await refresh();
+  $('teamlist').innerHTML=unique.map(m=>`<div class="card team-member-card"><div><h3>✂️ ${esc(m.display_name)} ${m.user_id===me.id?'· MOI':''}</h3><p>Compte actif de l’équipe</p></div></div>`).join('')||'<p class="muted">Aucun membre.</p>';
 }
 
 async function answer(id,status) {
@@ -536,7 +499,7 @@ document.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>showPanel(''))
 
 $('astatus').onchange=()=>{$('limitLabel').hidden=$('astatus').value!=='limited';};
 $('saveA').onclick=async()=>{
-  if(!isFabien())return toast('Seul Fabien peut modifier les disponibilités.');
+  if(!me?.id)return toast('Connecte-toi pour enregistrer tes disponibilités.');
   const day=$('adate').value;
   if(!day)return toast('Choisis une date');
   const status=$('astatus').value;
